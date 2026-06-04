@@ -10,6 +10,7 @@ import re
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import unquote
 from flask import Flask, jsonify, request
 import requests
 
@@ -288,6 +289,7 @@ def expenses_summary():
 def expenses_by_location(location_name):
     """All line items for a specific customer_location."""
     try:
+        location_name = unquote(location_name)
         cfg  = load_config()
         items = fetch_all_line_items(cfg)
         filtered = [i for i in items if i["location"].lower() == location_name.lower()]
