@@ -1,0 +1,2079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ATI Motors — US Operations Finance</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  background: #f0f2f5; color: #1a1a2e; min-height: 100vh;
+}
+
+/* ── Topbar ── */
+.topbar {
+  background: #1a2744; color: white;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; height: 56px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.brand { font-size: 16px; font-weight: 700; }
+.brand-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.1); border-radius: 20px;
+  padding: 4px 12px; font-size: 11px; color: #cbd5e1;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+.dot.red { background: #ef4444; }
+.btn-refresh {
+  background: #2563eb; color: white; border: none;
+  padding: 7px 16px; border-radius: 7px; font-size: 12px;
+  font-weight: 600; cursor: pointer;
+}
+.btn-refresh:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Layout ── */
+.layout { display: flex; height: calc(100vh - 56px); }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 260px; min-width: 260px;
+  background: white; border-right: 1px solid #e2e8f0;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.sidebar-head {
+  padding: 14px 18px 10px;
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.8px; color: #94a3b8;
+  border-bottom: 1px solid #f1f5f9;
+}
+.sidebar-scroll { overflow-y: auto; flex: 1; padding: 8px 0; }
+
+/* "All Customers" row */
+.all-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px; cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background 0.12s;
+}
+.all-row:hover { background: #f8fafc; }
+.all-row.active { background: #eff6ff; border-left-color: #2563eb; }
+.all-row-label { font-size: 13px; font-weight: 700; color: #1e293b; }
+.all-row-amt { font-size: 12px; font-weight: 700; color: #64748b; }
+
+/* Section header */
+.sect-head {
+  padding: 10px 18px 4px;
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.7px; color: #94a3b8;
+  display: flex; align-items: center; gap: 8px;
+}
+.sect-line { flex: 1; height: 1px; background: #f1f5f9; }
+
+/* Customer row */
+.cust-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px; cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background 0.12s;
+}
+.cust-row:hover { background: #f8fafc; }
+.cust-row.active { background: #eff6ff; border-left-color: var(--color); }
+.cust-swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.cust-info { flex: 1; min-width: 0; }
+.cust-name { font-size: 12px; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cust-amt { font-size: 11px; font-weight: 700; color: #64748b; flex-shrink: 0; }
+
+/* ── Main ── */
+.main { flex: 1; overflow-y: auto; padding: 22px 24px; }
+
+/* KPI cards */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.kpi {
+  background: white; border-radius: 10px;
+  padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  border-top: 3px solid var(--color, #e2e8f0);
+}
+.kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8; margin-bottom: 6px; }
+.kpi-value { font-size: 22px; font-weight: 800; color: #1e293b; }
+.kpi-sub { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+
+/* Controls bar */
+.controls {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 18px;
+}
+.controls label { font-size: 12px; font-weight: 600; color: #374151; }
+.controls select {
+  border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 5px 10px; font-size: 12px; background: white; cursor: pointer;
+}
+.breadcrumb {
+  font-size: 13px; color: #64748b;
+  display: flex; align-items: center; gap: 6px;
+}
+.breadcrumb strong { color: #1e293b; }
+.breadcrumb .back {
+  color: #2563eb; cursor: pointer; font-weight: 600;
+  text-decoration: underline; font-size: 12px;
+}
+
+/* Chart card */
+.chart-card {
+  background: white; border-radius: 12px;
+  padding: 22px 24px; margin-bottom: 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.chart-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.chart-title { font-size: 15px; font-weight: 700; color: #1e293b; }
+.chart-subtitle { font-size: 12px; color: #94a3b8; margin-top: 3px; }
+.chart-wrap { position: relative; height: 300px; }
+
+/* Tabs */
+.tabs {
+  display: flex; gap: 0; margin-bottom: 18px;
+  border-bottom: 2px solid #e2e8f0;
+}
+.tab {
+  padding: 8px 20px; font-size: 13px; font-weight: 600;
+  color: #64748b; cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -2px; transition: color 0.15s, border-color 0.15s;
+}
+.tab:hover { color: #1e293b; }
+.tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+
+/* P&L chart */
+.pl-wrap { position: relative; height: 340px; }
+.pl-legend {
+  display: flex; gap: 20px; margin-bottom: 14px;
+  font-size: 12px; color: #64748b; flex-wrap: wrap;
+}
+.pl-legend-item { display: flex; align-items: center; gap: 6px; }
+.pl-legend-line {
+  width: 24px; height: 2px; display: inline-block; border-radius: 1px;
+}
+.pl-legend-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  display: inline-block; margin-left: -4px; flex-shrink: 0;
+}
+.pl-stat-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  margin-bottom: 18px;
+}
+.pl-stat {
+  background: #f8fafc; border-radius: 8px; padding: 12px 14px;
+  border: 1px solid #f1f5f9;
+}
+.pl-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8; margin-bottom: 5px; }
+.pl-stat-value { font-size: 18px; font-weight: 800; color: #1e293b; }
+.pl-stat-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.pl-note { font-size: 11px; color: #94a3b8; margin-top: 10px; text-align: center; }
+
+/* Summary table */
+.table-card {
+  background: white; border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden;
+}
+.table-head-row {
+  padding: 14px 20px; border-bottom: 1px solid #e2e8f0;
+  font-size: 13px; font-weight: 700; color: #1e293b;
+}
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th {
+  background: #f8fafc; padding: 9px 14px;
+  text-align: right; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;
+  border-bottom: 2px solid #e2e8f0; white-space: nowrap;
+}
+th.l { text-align: left; }
+td { padding: 9px 14px; border-bottom: 1px solid #f1f5f9; text-align: right; }
+td.l { text-align: left; }
+td.bold { font-weight: 700; color: #1e293b; }
+td.muted { color: #cbd5e1; }
+.sect-tr td {
+  background: #f8fafc; font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.7px;
+  color: #94a3b8; padding: 7px 14px; border-bottom: 1px solid #e2e8f0;
+}
+.total-tr td { background: #1a2744; color: white; font-weight: 700; border: none; }
+.total-tr td.l { color: white; }
+tr:not(.sect-tr):not(.total-tr):hover td { background: #f0f9ff; }
+
+/* Loading */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,0.55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 300; backdrop-filter: blur(3px);
+}
+.overlay-box {
+  background: white; border-radius: 14px;
+  padding: 36px 48px; text-align: center;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.25); max-width: 340px;
+}
+.spinner {
+  display: inline-block; width: 36px; height: 36px;
+  border: 3px solid #e2e8f0; border-top-color: #2563eb;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.overlay-box h3 { margin-top: 14px; font-size: 15px; color: #1e293b; }
+.overlay-box p  { margin-top: 6px; font-size: 12px; color: #64748b; line-height: 1.5; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* Profitability table */
+.profit-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.profit-table th {
+  background: #f8fafc; padding: 9px 16px;
+  text-align: right; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;
+  border-bottom: 2px solid #e2e8f0; white-space: nowrap;
+}
+.profit-table th.l { text-align: left; }
+.profit-table th.c { text-align: center; }
+.profit-table td { padding: 10px 16px; border-bottom: 1px solid #f1f5f9; text-align: right; color: #374151; }
+.profit-table td.l { text-align: left; }
+.profit-table td.c { text-align: center; }
+.profit-table tr:hover td { background: #f8fafc; }
+.gap-surplus { color: #15803d; font-weight: 700; }
+.gap-deficit { color: #dc2626; font-weight: 700; }
+.cust-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-weight: 600; color: #1e293b;
+}
+.profit-table tr.sect-header td {
+  background: #f1f5f9; font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.7px; color: #94a3b8;
+  padding: 6px 16px; border-bottom: 1px solid #e2e8f0;
+}
+.profit-table tr.total-row td {
+  background: #1a2744; color: white; font-weight: 700; border: none; padding: 11px 16px;
+}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-box">
+    <div class="spinner"></div>
+    <h3 id="overlayTitle">Loading foundation…</h3>
+    <p id="overlaySub">Reading customers &amp; PO history from Google Sheet.</p>
+  </div>
+</div>
+
+<div class="topbar">
+  <div>
+    <div class="brand">ATI Motors</div>
+    <div class="brand-sub">US Operations · Expense Review</div>
+  </div>
+  <div class="topbar-right">
+    <div class="status-pill">
+      <div class="dot" id="dot"></div>
+      <span id="statusTxt">Connecting…</span>
+    </div>
+    <button class="btn-refresh" id="btnRefresh" onclick="doRefresh()">⟳ Refresh</button>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-head">Customers</div>
+    <div class="sidebar-scroll" id="sidebarContent"></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi" style="--color:#2563eb">
+        <div class="kpi-label">Total (Filtered)</div>
+        <div class="kpi-value" id="kTotal">—</div>
+        <div class="kpi-sub" id="kSub">All customers</div>
+      </div>
+      <div class="kpi" style="--color:#3b82f6">
+        <div class="kpi-label">US Customers</div>
+        <div class="kpi-value" id="kUS">—</div>
+        <div class="kpi-sub">All time</div>
+      </div>
+      <div class="kpi" style="--color:#16a34a">
+        <div class="kpi-label">International</div>
+        <div class="kpi-value" id="kIntl">—</div>
+        <div class="kpi-sub">All time</div>
+      </div>
+      <div class="kpi" style="--color:#7c3aed">
+        <div class="kpi-label">Claims</div>
+        <div class="kpi-value" id="kClaims">—</div>
+        <div class="kpi-sub">Expense claims</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <label>Period</label>
+      <select id="selMonths" onchange="render()">
+        <option value="6">Last 6 months</option>
+        <option value="12">Last 12 months</option>
+        <option value="all">All time</option>
+      </select>
+      <div style="flex:1"></div>
+      <div class="breadcrumb" id="breadcrumb"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" id="tabRow">
+      <div class="tab active" id="tabExpenses" onclick="switchTab('expenses')">Expenses</div>
+      <div class="tab" id="tabPL" onclick="switchTab('pl')">P&amp;L</div>
+      <div class="tab" id="tabUtil" onclick="switchTab('util')">Utilization</div>
+      <div class="tab" id="tabSMR" onclick="switchTab('smr')">Material Cost</div>
+    </div>
+
+    <!-- Expenses view -->
+    <div id="viewExpenses">
+      <!-- Chart -->
+      <div class="chart-card">
+        <div class="chart-top">
+          <div>
+            <div class="chart-title" id="chartTitle">Monthly Expenses — All Customers</div>
+            <div class="chart-subtitle" id="chartSub">Click a customer in the sidebar to drill in</div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="mainChart"></canvas>
+        </div>
+      </div>
+      <!-- Table -->
+      <div class="table-card">
+        <div class="table-head-row" id="tableTitle">Monthly Breakdown</div>
+        <div style="overflow-x:auto"><table id="tbl"></table></div>
+      </div>
+    </div>
+
+    <!-- P&L view (customer only) -->
+    <div id="viewPL" style="display:none">
+      <div class="chart-card">
+        <div class="chart-top">
+          <div>
+            <div class="chart-title" id="plTitle">P&amp;L — Customer</div>
+            <div class="chart-subtitle">Cumulative ATI cost vs cumulative revenue · hover for monthly gap</div>
+          </div>
+        </div>
+        <!-- Stat cards -->
+        <div class="pl-stat-row" id="plStats"></div>
+        <!-- Legend -->
+        <div class="pl-legend">
+          <div class="pl-legend-item">
+            <span class="pl-legend-line" style="background:#e24b4a"></span>
+            <span class="pl-legend-dot" style="background:#e24b4a"></span>
+            ATI cumulative cost
+          </div>
+          <div class="pl-legend-item">
+            <span class="pl-legend-line" style="background:#1d9e75;border-top:2px dashed #1d9e75;height:0"></span>
+            <span class="pl-legend-dot" style="background:#1d9e75"></span>
+            Cumulative revenue
+          </div>
+          <div class="pl-legend-item">
+            <span style="width:12px;height:12px;background:rgba(226,74,74,0.15);border:1px solid #e24b4a;border-radius:2px;display:inline-block"></span>
+            In the red
+          </div>
+          <div class="pl-legend-item">
+            <span style="width:12px;height:12px;background:rgba(29,158,117,0.15);border:1px solid #1d9e75;border-radius:2px;display:inline-block"></span>
+            In the green
+          </div>
+        </div>
+        <!-- P&L controls -->
+        <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;padding:10px 14px;background:#f8fafc;border-radius:8px;border:1px solid #f1f5f9;">
+          <span style="font-size:11px;color:#64748b">Deploy delay &amp; payment terms are per-customer — set in the <strong>Milestones</strong> tab of the Google Sheet.</span>
+          <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:#374151;cursor:pointer;user-select:none;margin-left:auto">
+            <input type="checkbox" id="chkMilestones" checked
+              style="width:15px;height:15px;accent-color:#2563eb;cursor:pointer;"
+              onchange="toggleMilestones()">
+            <span style="font-weight:600;white-space:nowrap">Contract milestones</span>
+          </label>
+        </div>
+        <!-- Direct cost box — only shown in all-customers P&L mode -->
+        <div id="directCostWrap" style="display:none;flex-direction:column;gap:10px;margin-bottom:14px;">
+          <!-- Man-day cost settings -->
+          <div style="display:flex;align-items:center;gap:16px;padding:10px 14px;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;">
+            <span style="font-size:13px;font-weight:700;color:#0c4a6e;">🧑‍🔧 Engineer Man-Day Cost</span>
+            <span style="font-size:12px;color:#075985;">Man-days derived from per diem entries in ERP. Adjust rates if needed.</span>
+            <div style="display:flex;align-items:center;gap:14px;margin-left:auto;flex-shrink:0">
+              <div style="display:flex;align-items:center;gap:5px">
+                <span style="font-size:11px;color:#64748b;white-space:nowrap">Per diem rate</span>
+                <span style="font-size:12px;font-weight:700;color:#374151">$</span>
+                <input type="number" id="inpPerDiemRate" value="75" min="1" step="5"
+                  style="width:60px;border:1px solid #7dd3fc;border-radius:6px;padding:4px 8px;font-size:12px;font-weight:600;text-align:right;background:white"
+                  oninput="perDiemRate=parseFloat(this.value)||75; renderAllPL()">
+                <span style="font-size:11px;color:#64748b">/day</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:5px">
+                <span style="font-size:11px;color:#64748b;white-space:nowrap">Cost per man-day</span>
+                <span style="font-size:12px;font-weight:700;color:#374151">$</span>
+                <input type="number" id="inpManDayRate" value="300" min="1" step="50"
+                  style="width:70px;border:1px solid #7dd3fc;border-radius:6px;padding:4px 8px;font-size:12px;font-weight:600;text-align:right;background:white"
+                  oninput="manDayRate=parseFloat(this.value)||300; renderAllPL()">
+                <span style="font-size:11px;color:#64748b">/day</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pl-wrap" id="plChartWrap">
+          <canvas id="plChart"></canvas>
+        </div>
+        <!-- Contract milestones legend table — shown below single-customer chart -->
+        <div id="plMilestonesTable" style="display:none;margin-top:12px;overflow-x:auto"></div>
+        <!-- All-customers profitability table (shown instead of chart) -->
+        <div id="plTableWrap" style="display:none;overflow-x:auto;margin-top:4px"></div>
+        <div class="pl-note" id="plNote"></div>
+      </div>
+    </div>
+
+    <!-- Material Cost (SMR) view -->
+    <div id="viewSMR" style="display:none">
+      <div class="table-card" style="margin-bottom:16px">
+        <div class="table-head-row" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Service Material Requests — US Customers</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <select id="smrStatusFilter" onchange="renderSMRTable()"
+              style="font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;background:white;color:#374151">
+              <option value="">All Statuses</option>
+              <option value="Approved">Approved</option>
+              <option value="Returnable">Returnable</option>
+              <option value="Returned">Returned</option>
+              <option value="Pending">Pending</option>
+            </select>
+            <select id="smrLocationFilter" onchange="renderSMRTable()"
+              style="font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;background:white;color:#374151">
+              <option value="">All Locations</option>
+            </select>
+            <span id="smrLoadStatus" style="font-size:11px;color:#94a3b8"></span>
+          </div>
+        </div>
+        <!-- KPI strip -->
+        <div id="smrKPIs" style="display:flex;gap:16px;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #f1f5f9;flex-wrap:wrap"></div>
+        <div style="overflow-x:auto"><div id="smrTable"></div></div>
+      </div>
+    </div>
+
+    <!-- Utilization view -->
+    <div id="viewUtil" style="display:none">
+      <div class="chart-card">
+        <div class="chart-top">
+          <div>
+            <div class="chart-title">Engineer Utilization — Man Days per Month</div>
+            <div class="chart-subtitle">Derived from per diem expense entries · since Jan 2026</div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="utilChart"></canvas>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-head-row">Man Days by Customer &amp; Month</div>
+        <div style="overflow-x:auto"><div id="utilTable"></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Foundation data — loaded from Google Sheet at startup ─────────────────────
+// Nothing below should be hardcoded. All customer/PO data comes from
+// the Customers and PO History tabs in the foundation Google Sheet.
+let US_CUSTOMERS    = [];
+let INTL_CUSTOMERS  = [];
+let ALL_CUSTOMERS   = [];
+let CUSTOMER_CONFIG = {};
+
+const US_COLORS   = ['#1e3a8a','#1d4ed8','#3b82f6','#60a5fa','#0ea5e9','#6366f1','#4338ca','#93c5fd'];
+const INTL_COLORS = ['#14532d','#15803d','#16a34a','#22c55e','#4ade80','#166534','#047857','#059669'];
+
+function colorOf(loc) {
+  const ui = US_CUSTOMERS.indexOf(loc);
+  if (ui >= 0) return US_COLORS[ui % US_COLORS.length];
+  const ii = INTL_CUSTOMERS.indexOf(loc);
+  if (ii >= 0) return INTL_COLORS[ii % INTL_COLORS.length];
+  return '#94a3b8';
+}
+
+// ── Foundation load & build ───────────────────────────────────────────────────
+async function loadFoundation() {
+  try {
+    const r = await fetch('/api/foundation');
+    const d = await r.json();
+    if (d.status !== 'ok') throw new Error(d.detail || 'Foundation load failed');
+    buildFromFoundation(d.data);
+  } catch(e) {
+    console.warn('⚠️ Foundation load failed:', e.message);
+    document.getElementById('statusTxt').textContent = 'Sheet unavailable — some data missing';
+  }
+}
+
+function buildFromFoundation(data) {
+  const customers = (data.customers?.rows  || []);
+  const poHistory = (data.po_history?.rows || []);
+  const bots      = (data.bots?.rows       || []);
+
+  // Bot model → unit cost lookup (from Bots tab)
+  const botCostByModel = {};
+  bots.forEach(b => {
+    const model = String(b['Bot Model'] || '').trim();
+    const cost  = parseFloat(b['Unit Cost (USD)']) || 0;
+    if (model && cost) botCostByModel[model] = cost;
+  });
+
+  // PO History grouped by Location, sorted by close date
+  const poByLoc = {};
+  poHistory.forEach(row => {
+    const loc = String(row['Location'] || '').trim();
+    if (!loc) return;
+    if (!poByLoc[loc]) poByLoc[loc] = [];
+    const closeDate = String(row['Close Date'] || '').trim();
+    const closeYM   = closeDate.length >= 7 ? closeDate.slice(0, 7) : '';
+    if (!closeYM) return;
+    poByLoc[loc].push({
+      close:   closeYM,
+      monthly: parseFloat(row['Monthly Rate (USD)']) || 0,
+      months:  parseInt(row['Duration (Months)'])    || 0,
+      label:   String(row['PO Label'] || '').trim(),
+      bots:    parseInt(row['Bots'])                 || 0,
+      product: String(row['Product']  || '').trim(),  // e.g. "Sherpa Tug V3.5, Sherpa XT Lite"
+    });
+  });
+  Object.values(poByLoc).forEach(arr => arr.sort((a, b) => a.close.localeCompare(b.close)));
+
+  // Build customer lists and CUSTOMER_CONFIG
+  US_CUSTOMERS    = [];
+  INTL_CUSTOMERS  = [];
+  CUSTOMER_CONFIG = {};
+
+  customers.forEach(row => {
+    // Display name: use Customer (ERP) column (e.g. "Brose - Alabama")
+    // ERP key: explicit ERP Location if set, otherwise strip " - " from Customer (ERP)
+    //          e.g. "Brose - Alabama" → "Brose Alabama" to match ERP customer_location field
+    const custERP  = String(row['Customer (ERP)'] || '').trim();
+    const erpLocOv = String(row['ERP Location']   || '').trim();
+    const loc      = String(row['Location']        || '').trim();
+    const displayName = custERP || loc;
+    // ERP key: use ERP Location override ONLY if it's explicitly different from Location
+    // (meaning someone manually set it). Otherwise derive from Customer (ERP) by
+    // stripping " - " → " " (e.g. "Valeo - Greensburg" → "Valeo Greensburg").
+    // The sync populates ERP Location = Location (plant city), so when they match
+    // it means no manual override was set and we should use the auto-derived key.
+    const autoErpKey = displayName.replace(/ - /g, ' ');
+    const erpKey     = (erpLocOv && erpLocOv !== loc) ? erpLocOv : autoErpKey;
+    const zone        = String(row['Zone'] || '').trim();
+    if (!displayName) return;
+    // Skip blank zones and India (no US ERP expense data for those)
+    if (zone === '' || zone === 'India') return;
+
+    if (zone === 'US') US_CUSTOMERS.push(displayName);
+    else               INTL_CUSTOMERS.push(displayName);
+
+    // PO history is keyed by Location (plant city) in the sheet — try multiple keys
+    const poList = poByLoc[loc] || poByLoc[displayName] || poByLoc[erpKey] || [];
+
+    // BOM cost source of truth: Customers tab Bot Model + Active Bots count.
+    // Look up the unit cost from the Bots tab using the Bot Model field.
+    const botModel   = String(row['Bot Model'] || '').trim();
+    const FALLBACK_BOM = 17282;
+    const botUnitCost = botCostByModel[botModel] || FALLBACK_BOM;
+    if (!botCostByModel[botModel] && botModel) {
+      console.warn(`[BOM] "${displayName}": Bot Model "${botModel}" not found in Bots tab — using fallback $${FALLBACK_BOM}`);
+    }
+
+    // Apply cost per PO using delta bots from PO History for correct timeline placement.
+    // Rate comes from Customers tab (reliable), timing comes from PO History.
+    let prevBots = 0;
+    poList.forEach(po => {
+      const delta = Math.max(0, (po.bots || 0) - prevBots);
+      po.bom_cost  = delta > 0 ? Math.round(delta * botUnitCost) : 0;
+      prevBots = po.bots || 0;
+    });
+
+    // Active Bots, Deploy Days, Payment Terms — all now live in Customers tab
+    const activeBots   = parseInt(row['Active Bots'])           || 0;
+    const deployDays   = parseInt(row['Deploy Days'])            || 0;
+    const payTermsDays = parseInt(row['Payment Terms (Days)'])   || 90;
+
+    CUSTOMER_CONFIG[displayName] = { erpKey, activeBots, botModel, botUnitCost, po_history: poList, payTermsDays, deployDays };
+  });
+
+  ALL_CUSTOMERS = [...US_CUSTOMERS, ...INTL_CUSTOMERS];
+  console.log(`✅ Foundation loaded — US: ${US_CUSTOMERS.length}, Intl: ${INTL_CUSTOMERS.length} customers`);
+}
+
+const fmt  = n => '$' + Number(n||0).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+const fmtK = n => n >= 1000 ? '$' + (n/1000).toFixed(1)+'k' : fmt(n);
+const fmtMonth = ym => {
+  const [y,m] = ym.split('-');
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]+" '"+y.slice(2);
+};
+
+let rawItems          = [];
+let summaryData       = null;
+let mainChart         = null;
+let highlightedLoc    = null;
+let chartColorMap     = {}; // label → hex color, stable reference for highlighting
+let plChart           = null;
+let selected          = null;
+let directMonthlyCost = 0;  // Global monthly US operating cost, entered by user
+let smrCostByLocMonth = {}; // { loc: { "YYYY-MM": cost } } — from approved SMRs
+let perDiemRate       = 75;  // Per diem $ per day (used to back-calculate man-days)
+let manDayRate        = 300; // Cost of 1 man-day of service engineer time
+let activeTab   = 'expenses';
+
+// CUSTOMER_CONFIG is populated dynamically by buildFromFoundation() above
+
+function getFirstPO(loc) {
+  const h = (CUSTOMER_CONFIG[loc] || {}).po_history || [];
+  return h.length ? h[0].close : null;
+}
+
+// Model revenue by month using PO history + user inputs
+// Deployment delay applies ONLY to the first PO — renewals are payment gaps, not re-deployments
+function modelRevenue(loc, deployDays, payTermsDays) {
+  const cfg = CUSTOMER_CONFIG[loc];
+  if (!cfg) return {};
+  const byMonth = {};
+  cfg.po_history.forEach((po, idx) => {
+    if (!po.monthly || po.monthly <= 0) return;
+    const [py, pm] = po.close.split('-').map(Number);
+    // Only first PO gets deployment delay; renewals start billing from PO close
+    const effectiveDeploy = idx === 0 ? deployDays : 0;
+    const deployStart = new Date(py, pm - 1, 1 + effectiveDeploy);
+    for (let i = 0; i < po.months; i++) {
+      const invoiceDate = new Date(deployStart);
+      invoiceDate.setMonth(invoiceDate.getMonth() + i);
+      const cashDate = new Date(invoiceDate);
+      cashDate.setDate(cashDate.getDate() + payTermsDays);
+      const key = `${cashDate.getFullYear()}-${String(cashDate.getMonth()+1).padStart(2,'0')}`;
+      byMonth[key] = (byMonth[key] || 0) + po.monthly;
+    }
+  });
+  return byMonth;
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tabExpenses').classList.toggle('active', tab === 'expenses');
+  document.getElementById('tabPL').classList.toggle('active', tab === 'pl');
+  document.getElementById('tabUtil').classList.toggle('active', tab === 'util');
+  document.getElementById('tabSMR').classList.toggle('active', tab === 'smr');
+  document.getElementById('viewExpenses').style.display = tab === 'expenses' ? '' : 'none';
+  document.getElementById('viewPL').style.display       = tab === 'pl'       ? '' : 'none';
+  document.getElementById('viewUtil').style.display     = tab === 'util'     ? '' : 'none';
+  document.getElementById('viewSMR').style.display      = tab === 'smr'      ? '' : 'none';
+  if (tab === 'smr' && smrData === null) loadSMRData();
+  if (tab === 'pl') {
+    if (selected) loadPL(selected);
+    else loadAllPL();
+  }
+  if (tab === 'util') renderUtilization();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  await checkStatus();
+  await loadFoundation();   // load customer/PO data from Google Sheet first
+  await loadData();         // then fetch ERP expense data
+}
+
+async function checkStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    const ok = d.status === 'connected';
+    document.getElementById('dot').className = ok ? 'dot' : 'dot red';
+    document.getElementById('statusTxt').textContent = ok
+      ? d.site.replace('https://','') : 'Connection error';
+  } catch {
+    document.getElementById('dot').className = 'dot red';
+    document.getElementById('statusTxt').textContent = 'Server offline';
+  }
+}
+
+async function loadData(forceRefresh = false) {
+  document.getElementById('overlay').style.display = 'flex';
+  document.getElementById('overlayTitle').textContent = 'Fetching data from ERPNext…';
+  document.getElementById('overlaySub').textContent   = 'Pulling all expense claims in parallel. First load ~20 sec, then cached for 1 hour.';
+  document.getElementById('btnRefresh').disabled = true;
+  try {
+    const url = '/api/expenses/summary' + (forceRefresh ? '?refresh=1' : '');
+    const r   = await fetch(url);
+    summaryData = await r.json();
+
+    // Fetch line items for all customers — use erpKey for the API call,
+    // but tag each item with the display name so the UI stays consistent
+    rawItems = [];
+    await Promise.all(ALL_CUSTOMERS.map(async displayName => {
+      try {
+        const erpKey = CUSTOMER_CONFIG[displayName]?.erpKey || displayName;
+        const r2 = await fetch('/api/expenses/location/' + encodeURIComponent(erpKey));
+        const d  = await r2.json();
+        (d.line_items || []).forEach(item => rawItems.push({ ...item, location: displayName }));
+      } catch {}
+    }));
+
+    // Render immediately with T&E + Man Days — SMR costs load in background
+    renderKPIs();
+    renderSidebar();
+    render();
+
+    // Fetch SMR material costs in background — re-renders table when ready
+    // Not awaited so it never blocks or delays the main dashboard load
+    fetch('/api/smr/all-costs')
+      .then(r => r.json())
+      .then(d => {
+        smrCostByLocMonth = d.by_location || {};
+        // Silently re-render to inject SMR rows into the table
+        renderKPIs();
+        render();
+      })
+      .catch(() => { smrCostByLocMonth = {}; });
+  } catch(e) {
+    alert('Failed to load: ' + e.message);
+  } finally {
+    document.getElementById('overlay').style.display = 'none';
+    document.getElementById('btnRefresh').disabled = false;
+  }
+}
+
+function doRefresh() { selected = null; loadData(true); }
+
+// ── Cost helpers ──────────────────────────────────────────────────────────────
+function locTotal(loc, items) {
+  const te  = Object.values(getTEByMonth(loc, items)).reduce((s,v)=>s+v,0);
+  const md  = Object.values(getManDaysByMonth(loc, items)).reduce((s,v)=>s+v,0);
+  const smr = Object.values(getSMRByMonth(loc)).reduce((s,v)=>s+v,0);
+  return te + md + smr;
+}
+
+function combinedByMonth(loc, items) {
+  // Returns { "YYYY-MM": total } combining T&E + man days + SMR
+  const te  = getTEByMonth(loc, items);
+  const md  = getManDaysByMonth(loc, items);
+  const smr = getSMRByMonth(loc);
+  const months = new Set([...Object.keys(te), ...Object.keys(md), ...Object.keys(smr)]);
+  const out = {};
+  months.forEach(m => { out[m] = (te[m]||0) + (md[m]||0) + (smr[m]||0); });
+  return out;
+}
+
+function allMonthKeys(items) {
+  // Month keys from T&E items + SMR data combined
+  const s = new Set(items.map(i => (i.date||'').slice(0,7)).filter(Boolean));
+  Object.values(smrCostByLocMonth).forEach(byMonth =>
+    Object.keys(byMonth).forEach(m => s.add(m))
+  );
+  return Array.from(s).sort();
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+function renderKPIs() {
+  const usTotal   = US_CUSTOMERS.reduce((s,l) => s + locTotal(l, rawItems), 0);
+  const intlTotal = INTL_CUSTOMERS.reduce((s,l) => s + locTotal(l, rawItems), 0);
+  document.getElementById('kUS').textContent    = fmt(usTotal);
+  document.getElementById('kIntl').textContent  = fmt(intlTotal);
+  document.getElementById('kClaims').textContent = summaryData.total_claims || '—';
+}
+
+function updateFilteredKPI(items) {
+  const locs = selected ? [selected] : ALL_CUSTOMERS;
+  const total = locs.reduce((s,l) => s + locTotal(l, items), 0);
+  const claims = new Set(items.map(i => i.claim)).size;
+  document.getElementById('kTotal').textContent = fmt(total);
+  document.getElementById('kSub').textContent   = selected
+    ? selected
+    : `All customers · ${claims} claims`;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+function renderSidebar() {
+  const grandUS   = US_CUSTOMERS.reduce((s,l) => s + locTotal(l, rawItems), 0);
+  const grandIntl = INTL_CUSTOMERS.reduce((s,l) => s + locTotal(l, rawItems), 0);
+
+  const allRow = `
+    <div class="all-row ${!selected ? 'active' : ''}" id="allRow" onclick="selectCustomer(null)">
+      <span class="all-row-label">All Customers</span>
+      <span class="all-row-amt">${fmt(grandUS + grandIntl)}</span>
+    </div>`;
+
+  const custRow = (loc, i, colors) => {
+    const amt    = locTotal(loc, rawItems);
+    const color  = colors[i % colors.length];
+    const hasPO  = !!(CUSTOMER_CONFIG[loc]?.po_history?.length);
+    return `<div class="cust-row ${selected===loc?'active':''}"
+                 style="--color:${color}"
+                 onclick="selectCustomer('${loc.replace(/'/g,"\\'")}')">
+      <div class="cust-swatch" style="background:${color}"></div>
+      <div class="cust-info">
+        <div class="cust-name" title="${loc}">${loc}</div>
+        ${!amt && hasPO ? '<div style="font-size:10px;color:#f59e0b">⚠ ERP name mismatch</div>' : ''}
+        ${!hasPO ? '<div style="font-size:10px;color:#94a3b8">No PO history</div>' : ''}
+      </div>
+      <span class="cust-amt">${amt ? fmtK(amt) : '—'}</span>
+    </div>`;
+  };
+
+  const usSect = `
+    <div class="sect-head">
+      <span style="color:#1d4ed8">🇺🇸 US</span>
+      <div class="sect-line"></div>
+    </div>
+    ${US_CUSTOMERS.map((loc, i) => custRow(loc, i, US_COLORS)).join('')}`;
+
+  const intlSect = `
+    <div class="sect-head" style="margin-top:6px">
+      <span style="color:#15803d">🌍 International</span>
+      <div class="sect-line"></div>
+    </div>
+    ${INTL_CUSTOMERS.map((loc, i) => custRow(loc, i, INTL_COLORS)).join('')}`;
+
+  document.getElementById('sidebarContent').innerHTML = allRow + usSect + intlSect;
+}
+
+function selectCustomer(loc) {
+  selected = loc;
+  document.querySelectorAll('.cust-row').forEach(el => el.classList.remove('active'));
+  document.getElementById('allRow').classList.toggle('active', !loc);
+  if (loc) {
+    document.querySelectorAll('.cust-row').forEach(el => {
+      if (el.querySelector('.cust-name')?.title === loc) el.classList.add('active');
+    });
+  }
+  // Tabs always visible
+  document.getElementById('tabRow').style.display = 'flex';
+  // Milestone toggle only meaningful per-customer
+  document.getElementById('chkMilestones').parentElement.style.opacity = loc ? '1' : '0.35';
+  document.getElementById('chkMilestones').parentElement.style.pointerEvents = loc ? '' : 'none';
+  render();
+  if (activeTab === 'pl') {
+    if (loc) loadPL(loc);
+    else loadAllPL();
+  }
+}
+
+// ── Main render ───────────────────────────────────────────────────────────────
+function render() {
+  const months = parseInt(document.getElementById('selMonths').value) || 9999;
+  let items = rawItems;
+
+  // Filter by period
+  if (months !== 9999) {
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - months);
+    const cutStr = cutoff.toISOString().slice(0,7);
+    items = items.filter(i => (i.date||'').slice(0,7) >= cutStr);
+  }
+
+  // Filter by selected customer
+  if (selected) {
+    items = items.filter(i => i.location === selected);
+  }
+
+  updateFilteredKPI(items);
+
+  // Update breadcrumb
+  const bc = document.getElementById('breadcrumb');
+  if (selected) {
+    bc.innerHTML = `<span class="back" onclick="selectCustomer(null)">← All Customers</span>
+                    <span>›</span><strong>${selected}</strong>`;
+  } else {
+    bc.innerHTML = '';
+  }
+
+  // Gather months — include SMR months too
+  const monthKeys = selected
+    ? Array.from(new Set([
+        ...items.map(i => (i.date||'').slice(0,7)).filter(Boolean),
+        ...Object.keys(getSMRByMonth(selected)),
+      ])).sort()
+    : allMonthKeys(items);
+
+  if (selected) {
+    renderSingleChart(monthKeys, items, selected);
+    renderSingleTable(monthKeys, items, selected);
+  } else {
+    renderAllChart(monthKeys, items);
+    renderAllTable(monthKeys, items);
+  }
+}
+
+// ── All-customers chart (stacked bar) ─────────────────────────────────────────
+function renderAllChart(monthKeys, items) {
+  document.getElementById('chartTitle').textContent = 'Monthly Expenses — All Customers';
+  document.getElementById('chartSub').textContent   = 'T&E + Man Days + SMR · Click a customer row to highlight';
+
+  // Use combined totals (T&E + man days + SMR) per location per month
+  const locMonth = {};
+  ALL_CUSTOMERS.forEach(loc => {
+    const combined = combinedByMonth(loc, items);
+    if (Object.keys(combined).length) locMonth[loc] = combined;
+  });
+
+  chartColorMap  = {};
+  const datasets = [];
+  US_CUSTOMERS.forEach((loc, idx) => {
+    if (!locMonth[loc]) return;
+    const color = US_COLORS[idx % US_COLORS.length];
+    chartColorMap[loc] = color;
+    datasets.push({ label: loc, data: monthKeys.map(m => Math.round(locMonth[loc][m]||0)), backgroundColor: color, borderWidth: 0, stack: 'stack' });
+  });
+  const hasIntl = INTL_CUSTOMERS.some(l => locMonth[l]);
+  if (hasIntl) datasets.push({ label: '─── International ───', data: monthKeys.map(()=>0), backgroundColor: 'transparent', borderWidth: 0, stack: 'stack' });
+  INTL_CUSTOMERS.forEach((loc, idx) => {
+    if (!locMonth[loc]) return;
+    const color = INTL_COLORS[idx % INTL_COLORS.length];
+    chartColorMap[loc] = color;
+    datasets.push({ label: loc, data: monthKeys.map(m => Math.round(locMonth[loc][m]||0)), backgroundColor: color, borderWidth: 0, stack: 'stack' });
+  });
+
+  if (mainChart) mainChart.destroy();
+  highlightedLoc = null;
+
+  mainChart = new Chart(document.getElementById('mainChart'), {
+    type: 'bar',
+    data: { labels: monthKeys.map(fmtMonth), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true, position: 'bottom',
+          labels: {
+            font: { size: 11 }, boxWidth: 12, padding: 14,
+            filter: (item, data) => data.datasets[item.datasetIndex]?.backgroundColor !== 'transparent',
+          },
+          onClick: (e, item) => highlightCustomer(item.text),
+        },
+        tooltip: {
+          filter: item => item.dataset.backgroundColor !== 'transparent',
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`,
+            footer: ctxArr => {
+              const mi = ctxArr[0].dataIndex;
+              const total = datasets.filter(d => d.backgroundColor !== 'transparent')
+                                    .reduce((s, d) => s + (d.data[mi]||0), 0);
+              return 'Total: ' + fmt(total);
+            }
+          }
+        }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 }, color: '#64748b' } },
+        y: { stacked: true, grid: { color: '#f1f5f9' },
+             ticks: { callback: v => fmtK(v), font: { size: 11 }, color: '#64748b' },
+             title: { display: true, text: 'Expenses (USD)', font: { size: 10 }, color: '#94a3b8' } }
+      }
+    }
+  });
+}
+
+// Highlight a customer segment + dim others; click again to clear
+function highlightCustomer(loc) {
+  if (!mainChart) return;
+  highlightedLoc = (highlightedLoc === loc) ? null : loc;
+
+  mainChart.data.datasets.forEach(ds => {
+    const color = chartColorMap[ds.label];
+    if (!color) return; // skip separator dataset
+    const active = !highlightedLoc || ds.label === highlightedLoc;
+    ds.backgroundColor = active ? color : color + '25';
+  });
+  mainChart.update(); // full redraw
+
+  document.querySelectorAll('tr[data-loc]').forEach(tr => {
+    const match = !highlightedLoc || tr.dataset.loc === highlightedLoc;
+    tr.style.opacity    = match ? '1' : '0.3';
+    tr.style.background = (match && highlightedLoc) ? '#eff6ff' : '';
+  });
+}
+
+// ── Single-customer chart ─────────────────────────────────────────────────────
+function renderSingleChart(monthKeys, items, loc) {
+  document.getElementById('chartTitle').textContent = loc;
+  document.getElementById('chartSub').textContent   = 'Monthly expense trend — T&E + Man Days + SMR';
+
+  // Combined totals per month
+  const monthTotals = combinedByMonth(loc, items);
+
+  const color = colorOf(loc);
+  if (mainChart) mainChart.destroy();
+  mainChart = new Chart(document.getElementById('mainChart'), {
+    type: 'line',
+    data: {
+      labels: monthKeys.map(fmtMonth),
+      datasets: [{
+        label: loc,
+        data: monthKeys.map(m => Math.round(monthTotals[m]||0)),
+        borderColor: color,
+        backgroundColor: color + '18',
+        borderWidth: 2.5,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        pointBackgroundColor: color,
+        fill: true,
+        tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.parsed.y)}` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#64748b' } },
+        y: {
+          grid: { color: '#f1f5f9' },
+          ticks: { callback: v => fmtK(v), font: { size: 11 }, color: '#64748b' },
+          title: { display: true, text: 'Expenses (USD)', font: { size: 10 }, color: '#94a3b8' },
+        }
+      }
+    }
+  });
+}
+
+// ── Shared chart renderer ─────────────────────────────────────────────────────
+function drawChart(monthKeys, datasets, opts = {}) {
+  if (mainChart) mainChart.destroy();
+  mainChart = new Chart(document.getElementById('mainChart'), {
+    type: 'bar',
+    data: { labels: monthKeys.map(fmtMonth), datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: opts.legend?.display !== false,
+          position: 'bottom',
+          labels: {
+            font: { size: 11 },
+            boxWidth: 12, padding: 14,
+            filter: (legendItem, data) => {
+              const dataset = data.datasets[legendItem.datasetIndex];
+              if (!dataset) return false;
+              if (opts.legend?.filter) return opts.legend.filter({ dataset });
+              return true;
+            },
+          },
+        },
+        tooltip: {
+          ...(opts.tooltip||{}),
+          callbacks: opts.tooltip?.callbacks || {},
+        },
+      },
+      scales: {
+        x: {
+          stacked: !!datasets[0]?.stack,
+          grid: { display: false },
+          ticks: { font: { size: 11 }, color: '#64748b' },
+        },
+        y: {
+          stacked: !!datasets[0]?.stack,
+          grid: { color: '#f1f5f9' },
+          ticks: { callback: v => fmtK(v), font: { size: 11 }, color: '#64748b' },
+          title: { display: true, text: 'Expenses (USD)', font: { size: 10 }, color: '#94a3b8' },
+        },
+      },
+    },
+  });
+}
+
+// ── Helpers: per-location monthly cost components ─────────────────────────────
+function getTEByMonth(loc, items) {
+  const m = {};
+  items.filter(i => i.location === loc).forEach(i => {
+    const k = (i.date||'').slice(0,7);
+    if (k) m[k] = (m[k]||0) + i.amount;
+  });
+  return m;
+}
+
+function getManDaysByMonth(loc, items) {
+  // Per diem entries → man-day cost per month
+  const m = {};
+  items.filter(i => i.location === loc && i.expense_type === 'Per Diem / Daily Allowance')
+    .forEach(i => {
+      const k = (i.date||'').slice(0,7);
+      if (k) m[k] = (m[k]||0) + i.amount;
+    });
+  // Convert per diem amount to man-day cost: (perDiem / perDiemRate) * manDayRate
+  const out = {};
+  Object.entries(m).forEach(([k, v]) => {
+    out[k] = perDiemRate > 0 ? (v / perDiemRate) * manDayRate : 0;
+  });
+  return out;
+}
+
+function getSMRByMonth(loc) {
+  // smrCostByLocMonth is keyed by ERP customer_location (e.g. "Valeo Greensburg")
+  // but loc is the display name (e.g. "Valeo - Greensburg").
+  // Try display name first, then fall back to erpKey from CUSTOMER_CONFIG.
+  const erpKey = CUSTOMER_CONFIG[loc]?.erpKey;
+  return smrCostByLocMonth[loc] || (erpKey ? smrCostByLocMonth[erpKey] : {}) || {};
+}
+
+// ── All-customers table ────────────────────────────────────────────────────────
+function renderAllTable(monthKeys, items) {
+  document.getElementById('tableTitle').textContent = 'Monthly Breakdown — All Customers';
+
+  const ths = monthKeys.map(m => `<th>${fmtMonth(m)}</th>`).join('');
+  let html = `<thead><tr>
+    <th class="l" colspan="2">Customer</th>${ths}<th>Total</th>
+  </tr></thead><tbody>`;
+
+  // Grand total accumulators
+  const grandTE  = {}, grandMD = {}, grandSMR = {};
+  monthKeys.forEach(m => { grandTE[m]=0; grandMD[m]=0; grandSMR[m]=0; });
+
+  const renderSection = (locs, label) => {
+    const locs_with_data = locs.filter(l =>
+      items.some(i => i.location === l) || smrCostByLocMonth[l]
+    );
+    if (!locs_with_data.length) return '';
+    let s = `<tr class="sect-tr"><td colspan="${monthKeys.length+3}">${label}</td></tr>`;
+
+    locs_with_data.forEach(loc => {
+      const te  = getTEByMonth(loc, items);
+      const md  = getManDaysByMonth(loc, items);
+      const smr = getSMRByMonth(loc);
+      const color = colorOf(loc);
+      const escapedLoc = loc.replace(/'/g, "\\'");
+
+      const teTotal  = monthKeys.reduce((s,m) => s+(te[m]||0), 0);
+      const mdTotal  = monthKeys.reduce((s,m) => s+(md[m]||0), 0);
+      const smrTotal = monthKeys.reduce((s,m) => s+(smr[m]||0), 0);
+      const rowTotal = teTotal + mdTotal + smrTotal;
+
+      monthKeys.forEach(m => {
+        grandTE[m]  += te[m]||0;
+        grandMD[m]  += md[m]||0;
+        grandSMR[m] += smr[m]||0;
+      });
+
+      const subRow = (label, byMonth, total, style='') =>
+        `<tr style="font-size:11px;${style}">
+          <td></td>
+          <td class="l" style="color:#64748b;padding-left:8px">${label}</td>
+          ${monthKeys.map(m => {
+            const v = byMonth[m]||0;
+            return v ? `<td style="color:#475569">${fmt(Math.round(v))}</td>` : `<td class="muted">—</td>`;
+          }).join('')}
+          <td style="color:#475569">${total > 0 ? fmt(Math.round(total)) : '—'}</td>
+        </tr>`;
+
+      s += `<tr data-loc="${loc}" onclick="highlightCustomer('${escapedLoc}')" style="cursor:pointer">
+        <td class="l bold" colspan="2">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:7px;vertical-align:middle"></span>
+          ${loc}
+          <span style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px">Total: ${fmt(Math.round(rowTotal))}</span>
+        </td>
+        ${monthKeys.map(m => {
+          const v = (te[m]||0) + (md[m]||0) + (smr[m]||0);
+          return v ? `<td class="bold">${fmt(Math.round(v))}</td>` : `<td class="muted">—</td>`;
+        }).join('')}
+        <td class="bold">${fmt(Math.round(rowTotal))}</td>
+      </tr>`;
+      s += subRow('T&E', te, teTotal);
+      s += subRow('Man Days', md, mdTotal);
+      s += subRow('SMR Material', smr, smrTotal);
+    });
+    return s;
+  };
+
+  html += renderSection(US_CUSTOMERS,   '🇺🇸 US Customers');
+  html += renderSection(INTL_CUSTOMERS, '🌍 International Customers');
+
+  const grandTotals = monthKeys.map(m => grandTE[m]+grandMD[m]+grandSMR[m]);
+  html += `<tr class="total-tr">
+    <td class="l" colspan="2">Grand Total</td>
+    ${grandTotals.map(v=>`<td>${fmt(Math.round(v))}</td>`).join('')}
+    <td>${fmt(Math.round(grandTotals.reduce((s,v)=>s+v,0)))}</td>
+  </tr></tbody>`;
+
+  document.getElementById('tbl').innerHTML = html;
+}
+
+// ── Single-customer table ─────────────────────────────────────────────────────
+function renderSingleTable(monthKeys, items, loc) {
+  document.getElementById('tableTitle').textContent = `Monthly Breakdown — ${loc}`;
+
+  const te  = getTEByMonth(loc, items);
+  const md  = getManDaysByMonth(loc, items);
+  const smr = getSMRByMonth(loc);
+
+  const teTotal  = monthKeys.reduce((s,m) => s+(te[m]||0), 0);
+  const mdTotal  = monthKeys.reduce((s,m) => s+(md[m]||0), 0);
+  const smrTotal = monthKeys.reduce((s,m) => s+(smr[m]||0), 0);
+  const grandTotal = teTotal + mdTotal + smrTotal;
+
+  const ths = monthKeys.map(m => `<th>${fmtMonth(m)}</th>`).join('');
+
+  const dataRow = (label, byMonth, total, bold=false) => {
+    const style = bold ? 'font-weight:700' : 'font-size:11px;color:#475569';
+    const cells = monthKeys.map(m => {
+      const v = byMonth[m]||0;
+      return v ? `<td style="${style}">${fmt(Math.round(v))}</td>` : `<td class="muted">—</td>`;
+    }).join('');
+    return `<tr>
+      <td class="l" style="${style};padding-left:${bold?'':'12px'}">${label}</td>
+      ${cells}
+      <td style="${style}">${total > 0 ? fmt(Math.round(total)) : '—'}</td>
+    </tr>`;
+  };
+
+  // Combined totals row per month
+  const combined = {};
+  monthKeys.forEach(m => { combined[m] = (te[m]||0) + (md[m]||0) + (smr[m]||0); });
+
+  const html = `
+    <thead><tr><th class="l">Component</th>${ths}<th>Total</th></tr></thead>
+    <tbody>
+      ${dataRow('T&E', te, teTotal)}
+      ${dataRow('Man Days', md, mdTotal)}
+      ${dataRow('SMR Material', smr, smrTotal)}
+      <tr class="total-tr">
+        <td class="l">Total</td>
+        ${monthKeys.map(m=>`<td>${fmt(Math.round(combined[m]||0))}</td>`).join('')}
+        <td>${fmt(Math.round(grandTotal))}</td>
+      </tr>
+    </tbody>`;
+
+  document.getElementById('tbl').innerHTML = html;
+}
+
+// ── P&L Chart ─────────────────────────────────────────────────────────────────
+function applyPLInputs() {
+  if (selected) loadPL(selected);
+  else loadAllPL();
+}
+
+async function loadPL(loc) {
+  document.getElementById('plTitle').textContent = `P&L — ${loc}`;
+  document.getElementById('plStats').innerHTML = '<div style="font-size:12px;color:#94a3b8;padding:8px 0">Building model…</div>';
+  document.getElementById('plNote').textContent = '';
+
+  const cfg         = CUSTOMER_CONFIG[loc] || {};
+  const deployDays  = cfg.deployDays   ?? 0;
+  const payTermDays = cfg.payTermsDays ?? 90;
+  const revenueByMonth = modelRevenue(loc, deployDays, payTermDays);
+  renderPL(loc, revenueByMonth, deployDays, payTermDays);
+}
+
+function renderPL(loc, revenueByMonth, deployDays=30, payTermDays=90) {
+  // Switch to chart view: restore elements hidden by all-customers table mode
+  document.getElementById('plChartWrap').style.display      = '';
+  document.getElementById('plTableWrap').style.display      = 'none';
+  document.getElementById('directCostWrap').style.display   = 'none';
+  document.querySelector('.pl-legend').style.display        = '';
+  document.getElementById('chkMilestones').parentElement.style.display = '';
+  // plMilestonesTable visibility is set by renderPL itself after building the chart
+
+  const expItems = rawItems.filter(i => i.location === loc);
+  const expByMonth = {};
+  expItems.forEach(i => {
+    const m = (i.date || '').slice(0,7);
+    if (m) expByMonth[m] = (expByMonth[m]||0) + i.amount;
+  });
+
+  const cfg          = CUSTOMER_CONFIG[loc] || {};
+  const poHistory    = cfg.po_history || [];
+  // currentBots = authoritative count from Customers tab (manually verified)
+  // Falls back to last PO history entry if not set
+  const currentBots  = cfg.activeBots || (poHistory.length ? poHistory[poHistory.length - 1].bots : 1);
+
+  // BOM cost per close month: read pre-computed po.bom_cost (set in buildFromFoundation)
+  // PO history is the journey; currentBots (from Customers tab) is the verified destination.
+  // If the last PO's bots don't match currentBots, override the final entry for display.
+  const bomCosts = {};
+  const poMeta = [];
+  let prevBots = 0, cumulativeMonthly = 0;
+  poHistory.forEach((po, idx) => {
+    // For the last PO, use currentBots as the authoritative count
+    const bots  = (idx === poHistory.length - 1) ? currentBots : (po.bots != null ? po.bots : 1);
+    const delta = bots - prevBots;
+    if (po.bom_cost > 0) bomCosts[po.close] = (bomCosts[po.close] || 0) + po.bom_cost;
+
+    const prevCumulative = cumulativeMonthly;
+    if (po.monthly) {
+      // Additive PO (new bots being added on top of existing contract): accumulate
+      // Renewal/replacement (same or fewer bots, new terms): replace running total
+      cumulativeMonthly = delta > 0
+        ? cumulativeMonthly + po.monthly
+        : po.monthly;
+    }
+
+    poMeta.push({ closeMonth: po.close, po, bots, deltaBots: delta,
+                  cumulativeMonthly, prevCumulative });
+    prevBots = bots;
+  });
+  const totalBOM = Object.values(bomCosts).reduce((s, v) => s + v, 0);
+  const poDate = poHistory.length ? poHistory[0].close : null;
+
+  // Build month range: from first PO close to current month
+  const dataDates = [...Object.keys(expByMonth), ...Object.keys(revenueByMonth)];
+  const earliest  = poDate
+    ? (dataDates.length ? [poDate, ...dataDates].sort()[0] : poDate)
+    : (dataDates.sort()[0] || '');
+  const now = new Date();
+  const latest = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  const allMonths = [];
+  if (earliest) {
+    let [y, m] = earliest.split('-').map(Number);
+    const [ey, em] = latest.split('-').map(Number);
+    while (y < ey || (y === ey && m <= em)) {
+      allMonths.push(`${y}-${String(m).padStart(2,'0')}`);
+      m++; if (m > 12) { m = 1; y++; }
+    }
+  }
+
+  if (!allMonths.length) {
+    document.getElementById('plStats').innerHTML = '<div style="font-size:12px;color:#94a3b8;padding:8px 0">No data found for this customer.</div>';
+    return;
+  }
+
+  // Cumulative arrays — BOM cost spikes at each PO close when new bots added
+  let cumCost = 0, cumRev = 0;
+  const costData = [], revData = [], labels = [];
+  allMonths.forEach(m => {
+    cumCost += (bomCosts[m] || 0);
+    cumCost += (expByMonth[m] || 0);
+    cumRev  += (revenueByMonth[m] || 0);
+    costData.push(Math.round(cumCost));
+    revData.push(Math.round(cumRev));
+    labels.push(fmtMonth(m));
+  });
+
+  const lastCost = costData[costData.length-1];
+  const lastRev  = revData[revData.length-1];
+  const splitIdx = labels.length - 1;
+
+  let breakEvenMonth = null;
+  for (let i = 1; i < costData.length; i++) {
+    if (revData[i] >= costData[i] && revData[i-1] < costData[i-1]) {
+      breakEvenMonth = labels[i]; break;
+    }
+  }
+
+  // Stat cards
+  const gap = lastCost - lastRev;
+  document.getElementById('plStats').innerHTML = `
+    <div class="pl-stat">
+      <div class="pl-stat-label">Hardware (BOM)</div>
+      <div class="pl-stat-value">${fmt(totalBOM)}</div>
+      <div class="pl-stat-sub">${currentBots} × ${cfg.botModel || 'bot'} · ${fmt(cfg.botUnitCost || 0)}/unit</div>
+    </div>
+    <div class="pl-stat">
+      <div class="pl-stat-label">Total Spent</div>
+      <div class="pl-stat-value">${fmt(lastCost)}</div>
+      <div class="pl-stat-sub">BOM + servicing</div>
+    </div>
+    <div class="pl-stat">
+      <div class="pl-stat-label">Revenue Earned</div>
+      <div class="pl-stat-value" style="color:#15803d">${fmt(lastRev)}</div>
+      <div class="pl-stat-sub">modelled from POs</div>
+    </div>
+    <div class="pl-stat">
+      <div class="pl-stat-label">${gap > 0 ? 'Current Gap' : 'Surplus'}</div>
+      <div class="pl-stat-value" style="color:${gap>0?'#dc2626':'#15803d'}">${gap>0?'-':'+'} ${fmt(Math.abs(gap))}</div>
+      <div class="pl-stat-sub">${breakEvenMonth ? `Break-even: ${breakEvenMonth}` : gap<=0 ? 'Profitable' : 'Projecting…'}</div>
+    </div>`;
+
+  // ── Annotations: numbered vertical lines, one per PO close date ──────────
+  const annotations  = {};
+  const metaByMonth  = {};
+  const milestoneSeq = [];  // ordered list for the table below the chart
+
+  poMeta.forEach(entry => {
+    if (!metaByMonth[entry.closeMonth]) metaByMonth[entry.closeMonth] = [];
+    metaByMonth[entry.closeMonth].push(entry);
+  });
+
+  let seqNum = 1;
+  Object.entries(metaByMonth).sort().forEach(([closeMonth, entries]) => {
+    const xLabel = fmtMonth(closeMonth);
+    const nums   = [];
+
+    entries.forEach(({ po, bots, deltaBots, cumulativeMonthly, prevCumulative }) => {
+      nums.push(seqNum);
+      milestoneSeq.push({ num: seqNum, closeMonth, po, bots, deltaBots,
+                          cumulativeMonthly, prevCumulative,
+                          bom: bomCosts[closeMonth] || 0 });
+      seqNum++;
+    });
+
+    // Just show the number(s) on the chart line — clean and uncluttered
+    annotations[`poLine_${closeMonth}`] = {
+      type: 'line', scaleID: 'x',
+      value: xLabel,
+      borderColor: '#2563eb', borderWidth: 1.5, borderDash: [4, 3],
+      label: {
+        display: true,
+        content: nums.join(','),
+        position: 'end',
+        backgroundColor: 'rgba(30,58,138,0.88)',
+        color: 'white',
+        font: { size: 10, weight: 'bold' },
+        padding: { x: 6, y: 3 },
+        borderRadius: 10,
+        yAdjust: 0,
+      }
+    };
+  });
+
+  // ── Milestone table below the chart ───────────────────────────────────────
+  const mtEl = document.getElementById('plMilestonesTable');
+  if (milestoneSeq.length) {
+    const rows = milestoneSeq.map(({ num, closeMonth, po, bots, deltaBots, cumulativeMonthly, prevCumulative, bom }) => {
+      const botDelta   = deltaBots > 0 ? `<span style="color:#16a34a">+${deltaBots}</span>`
+                       : deltaBots < 0 ? `<span style="color:#ef4444">${deltaBots}</span>`
+                       : `<span style="color:#94a3b8">—</span>`;
+      // Show cumulative monthly rate + delta vs previous cumulative
+      const rateStr    = cumulativeMonthly ? fmt(cumulativeMonthly) + '/mo' : (po.monthly ? fmt(po.monthly) + '/mo' : 'Outright');
+      const rateDiff   = prevCumulative != null ? cumulativeMonthly - prevCumulative : 0;
+      const rateChange = rateDiff > 0 ? ` <span style="color:#16a34a;font-size:10px">↑${fmt(rateDiff)}</span>`
+                       : rateDiff < 0 ? ` <span style="color:#ef4444;font-size:10px">↓${fmt(Math.abs(rateDiff))}</span>`
+                       : '';
+      const duration   = po.months ? `${po.months} mo` : '—';
+      const hwCost     = bom > 0 ? fmt(bom) : '—';
+      return `<tr>
+        <td style="padding:7px 10px;text-align:center">
+          <span style="background:#1d4ed8;color:white;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px">${num}</span>
+        </td>
+        <td style="padding:7px 10px;color:#64748b;font-size:12px">${fmtMonth(closeMonth)}</td>
+        <td style="padding:7px 10px;font-size:12px;max-width:220px;word-break:break-word">${po.label || '—'}</td>
+        <td style="padding:7px 10px;font-size:12px;text-align:center">${bots} ${botDelta}</td>
+        <td style="padding:7px 10px;font-size:12px">${rateStr}${rateChange}</td>
+        <td style="padding:7px 10px;font-size:12px;text-align:center">${duration}</td>
+        <td style="padding:7px 10px;font-size:12px;color:#7c3aed">${hwCost}</td>
+      </tr>`;
+    }).join('');
+
+    mtEl.style.display = '';
+    mtEl.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-family:inherit;background:white;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0">
+        <thead>
+          <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+            <th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;text-align:center">#</th>
+            <th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;text-align:left">Close</th>
+            <th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;text-align:left">Contract</th>
+            <th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;text-align:center">Bots</th>
+            <th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;text-align:left">Rate</th>
+            <th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;text-align:center">Duration</th>
+            <th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;text-align:left">Hardware</th>
+          </tr>
+        </thead>
+        <tbody style="divide-y:#f1f5f9">${rows}</tbody>
+      </table>`;
+  } else {
+    mtEl.style.display = 'none';
+    mtEl.innerHTML = '';
+  }
+
+  if (breakEvenMonth) {
+    annotations.bevent = {
+      type: 'line', scaleID: 'x',
+      value: breakEvenMonth,
+      borderColor: '#15803d', borderWidth: 1.5, borderDash: [4, 3],
+      label: {
+        display: true, content: `Break-even: ${breakEvenMonth}`,
+        position: 'start', backgroundColor: '#15803d',
+        color: 'white', font: { size: 10 }, padding: { x: 6, y: 4 },
+        borderRadius: 4,
+      }
+    };
+  }
+
+  if (plChart) plChart.destroy();
+  plChart = new Chart(document.getElementById('plChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'ATI cumulative cost',
+          data: costData,
+          borderColor: '#e24b4a',
+          segment: {
+            borderColor: ctx => ctx.p1DataIndex > splitIdx ? 'rgba(226,75,74,0.35)' : '#e24b4a',
+            borderDash:  ctx => ctx.p1DataIndex > splitIdx ? [5,4] : undefined,
+          },
+          borderWidth: 2,
+          pointRadius: costData.map((_, i) => i > splitIdx ? 0 : 3.5),
+          pointBackgroundColor: '#e24b4a',
+          fill: false, tension: 0.3,
+        },
+        {
+          label: 'Cumulative revenue',
+          data: revData,
+          borderColor: '#1d9e75',
+          segment: {
+            borderColor: ctx => ctx.p1DataIndex > splitIdx ? 'rgba(29,158,117,0.4)' : '#1d9e75',
+            borderDash:  ctx => ctx.p1DataIndex > splitIdx ? [5,4] : [6,3],
+          },
+          borderWidth: 2,
+          pointRadius: revData.map((_, i) => i > splitIdx ? 0 : 3.5),
+          pointBackgroundColor: '#1d9e75',
+          fill: false, tension: 0.3,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`,
+            footer: items => {
+              const c  = items[0].chart.data.datasets[0].data[items[0].dataIndex];
+              const rv = items[0].chart.data.datasets[1].data[items[0].dataIndex];
+              const d  = c - rv;
+              return d > 0 ? `Gap: -${fmt(d)}` : `Surplus: +${fmt(Math.abs(d))}`;
+            }
+          }
+        },
+        annotation: { annotations }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(128,128,128,0.08)' }, ticks: { font: { size: 10 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 14 } },
+        y: { grid: { color: 'rgba(128,128,128,0.08)' },
+             ticks: { font: { size: 10 }, callback: v => '$'+(v>=1000?(v/1000).toFixed(0)+'k':v) },
+             title: { display: true, text: 'USD (cumulative)', font: { size: 10 }, color: '#94a3b8' } }
+      }
+    },
+    plugins: [{
+      id: 'shading',
+      beforeDraw(chart) {
+        const {ctx, chartArea, scales} = chart;
+        if (!chartArea) return;
+        const ds0 = chart.data.datasets[0].data;
+        const ds1 = chart.data.datasets[1].data;
+        const xScale = scales.x, yScale = scales.y;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(chartArea.left, chartArea.top, chartArea.width, chartArea.height);
+        ctx.clip();
+        for (let i = 0; i < ds0.length - 1; i++) {
+          const x1 = xScale.getPixelForValue(i), x2 = xScale.getPixelForValue(i+1);
+          const c1 = yScale.getPixelForValue(ds0[i]), c2 = yScale.getPixelForValue(ds0[i+1]);
+          const r1 = yScale.getPixelForValue(ds1[i]), r2 = yScale.getPixelForValue(ds1[i+1]);
+          ctx.fillStyle = ds0[i] > ds1[i] ? 'rgba(226,74,74,0.10)' : 'rgba(29,158,117,0.10)';
+          ctx.beginPath();
+          ctx.moveTo(x1,c1); ctx.lineTo(x2,c2); ctx.lineTo(x2,r2); ctx.lineTo(x1,r1);
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.restore();
+      }
+    }]
+  });
+
+  const latestPO = poHistory[poHistory.length-1];
+  const modelNote = latestPO
+    ? `Revenue from Salesforce POs · Deploy delay: +${deployDays}d (1st PO only) · Payment terms: +${payTermDays}d`
+    : `Revenue modelled from Salesforce POs`;
+  document.getElementById('plNote').textContent = breakEvenMonth
+    ? `Break-even: ${breakEvenMonth} · ${modelNote}`
+    : lastRev >= lastCost
+    ? `Profitable · ${modelNote}`
+    : modelNote;
+}
+
+// ── All-customers P&L ─────────────────────────────────────────────────────────
+function loadAllPL() {
+  document.getElementById('plTitle').textContent = 'P&L — All Customers';
+  document.getElementById('plStats').innerHTML = '<div style="font-size:12px;color:#94a3b8;padding:8px 0">Building model…</div>';
+  document.getElementById('plNote').textContent = '';
+  renderAllPL();
+}
+
+function renderAllPL() {
+  // Switch to table view: hide chart, legend, milestones toggle; show direct cost box
+  document.getElementById('plChartWrap').style.display      = 'none';
+  document.getElementById('plMilestonesTable').style.display = 'none';
+  document.getElementById('plTableWrap').style.display      = 'block';
+  document.getElementById('directCostWrap').style.display   = 'flex';
+  document.querySelector('.pl-legend').style.display        = 'none';
+  document.getElementById('chkMilestones').parentElement.style.display = 'none';
+  if (plChart) { plChart.destroy(); plChart = null; }
+
+  const now          = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  // ── Last 6 calendar months ─────────────────────────────────────────────────
+  const last6Months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    last6Months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+
+  // ── Pre-compute total bots across ALL customers (for direct cost split) ──────
+  const allLocs = [...US_CUSTOMERS, ...INTL_CUSTOMERS];
+  const totalAllBots = allLocs.reduce((s, loc) => {
+    const cfg = CUSTOMER_CONFIG[loc];
+    if (!cfg || !cfg.po_history?.length) return s;
+    let bots = 0;
+    cfg.po_history.forEach(po => { bots = po.bots != null ? po.bots : 1; });
+    return s + bots;
+  }, 0);
+
+  // ── Per-customer P&L rows ──────────────────────────────────────────────────
+  const buildRow = loc => {
+    const cfg = CUSTOMER_CONFIG[loc];
+    if (!cfg || !cfg.po_history?.length) return null;
+
+    // Bot cost — read pre-computed bom_cost per PO (from Bots tab lookup)
+    // currentBots = authoritative count from Customers tab
+    const currentBots = cfg.activeBots || (cfg.po_history.length ? cfg.po_history[cfg.po_history.length - 1].bots || 1 : 1);
+    let totalBOM = 0;
+    cfg.po_history.forEach(po => { totalBOM += po.bom_cost || 0; });
+
+    // Service cost from ERP — cumulative + by month
+    const expByMonth = {};
+    rawItems.filter(i => i.location === loc).forEach(i => {
+      const m = (i.date||'').slice(0,7);
+      if (m) expByMonth[m] = (expByMonth[m]||0) + i.amount;
+    });
+    const serviceCost = Object.values(expByMonth).reduce((s, v) => s + v, 0);
+
+    // Avg monthly service cost — moving average of last 6 available months
+    const availExpMonths = Object.keys(expByMonth).sort().slice(-6);
+    const avgSvcCost = availExpMonths.length
+      ? availExpMonths.reduce((s, m) => s + expByMonth[m], 0) / availExpMonths.length
+      : 0;
+
+    // Modelled revenue to current month — use per-customer timing from Milestones tab
+    const rev = modelRevenue(loc, cfg.deployDays ?? 0, cfg.payTermsDays ?? 90);
+    const revenueToDate = Object.entries(rev)
+      .filter(([m]) => m <= currentMonth)
+      .reduce((s, [, v]) => s + v, 0);
+
+    // Avg monthly revenue — last 6 calendar months
+    const revLast6Sum = last6Months.reduce((s, m) => s + (rev[m]||0), 0);
+    const avgMonthlyRev = revLast6Sum / 6;
+
+    // Direct cost: proportional share of global monthly US ops cost by bot count
+    const directCostPerMonth = totalAllBots > 0
+      ? (directMonthlyCost / totalAllBots) * currentBots
+      : 0;
+
+    // Man-days: derived from per diem expense total ÷ per diem rate
+    const perDiemTotal = rawItems
+      .filter(i => i.location === loc && i.expense_type === 'Per Diem / Daily Allowance')
+      .reduce((s, i) => s + i.amount, 0);
+    const manDays     = perDiemRate > 0 ? perDiemTotal / perDiemRate : 0;
+    const manDayCost  = manDays * manDayRate; // total cumulative man-day cost
+
+    // Months active: from first PO close month to current month (inclusive)
+    const firstPO = cfg.po_history[0].close; // "YYYY-MM"
+    const [fy, fm] = firstPO.split('-').map(Number);
+    const [cy, cm] = currentMonth.split('-').map(Number);
+    const monthsActive = Math.max(0, (cy - fy) * 12 + (cm - fm) + 1);
+
+    // Monthly man-day cost: amortised over months active
+    const manDayCostPerMonth = monthsActive > 0 ? manDayCost / monthsActive : 0;
+
+    // Monthly gap (rate-based, direct cost + man-day cost deducted)
+    const monthlyGap = avgMonthlyRev - avgSvcCost - directCostPerMonth - manDayCostPerMonth;
+
+    // Current gap (cumulative, direct cost × months active + total man-day cost deducted)
+    const totalCost = totalBOM + serviceCost + directCostPerMonth * monthsActive + manDayCost;
+    const gap       = revenueToDate - totalCost;
+
+    return { loc, startDate: cfg.po_history[0].close, currentBots, totalBOM, serviceCost,
+             avgSvcCost, avgMonthlyRev, directCostPerMonth, manDays: Math.round(manDays),
+             manDayCost, manDayCostPerMonth, monthlyGap, revenueToDate, gap };
+  };
+
+  const usRows   = US_CUSTOMERS.map(buildRow).filter(Boolean);
+  const intlRows = INTL_CUSTOMERS.map(buildRow).filter(Boolean);
+
+  // Sort each group: worst deficit first
+  const byGap = (a, b) => a.gap - b.gap;
+  usRows.sort(byGap); intlRows.sort(byGap);
+
+  // ── Aggregate totals ───────────────────────────────────────────────────────
+  const allRows       = [...usRows, ...intlRows];
+  const totBOM           = allRows.reduce((s,r) => s+r.totalBOM, 0);
+  const totSvc           = allRows.reduce((s,r) => s+r.serviceCost, 0);
+  const totRev           = allRows.reduce((s,r) => s+r.revenueToDate, 0);
+  const totGap           = allRows.reduce((s,r) => s+r.gap, 0);
+  const totalBots        = allRows.reduce((s,r) => s+r.currentBots, 0);
+  const totAvgRev        = allRows.reduce((s,r) => s+r.avgMonthlyRev, 0);
+  const totAvgSvc        = allRows.reduce((s,r) => s+r.avgSvcCost, 0);
+  const totDirectCost    = allRows.reduce((s,r) => s+r.directCostPerMonth, 0);
+  const totManDays       = allRows.reduce((s,r) => s+r.manDays, 0);
+  const totManDayCost    = allRows.reduce((s,r) => s+r.manDayCost, 0);
+  const totManDayPerMo   = allRows.reduce((s,r) => s+r.manDayCostPerMonth, 0);
+  const totMonthlyGap    = allRows.reduce((s,r) => s+r.monthlyGap, 0);
+
+  // ── KPI stat cards ─────────────────────────────────────────────────────────
+  const surplusCount = allRows.filter(r => r.gap >= 0).length;
+  const deficitCount = allRows.filter(r => r.gap <  0).length;
+  document.getElementById('plStats').innerHTML = `
+    <div class="pl-stat">
+      <div class="pl-stat-label">Total Hardware</div>
+      <div class="pl-stat-value">${fmt(totBOM)}</div>
+      <div class="pl-stat-sub">${totalBots} bots across all accounts</div>
+    </div>
+    <div class="pl-stat">
+      <div class="pl-stat-label">Service Cost</div>
+      <div class="pl-stat-value">${fmt(totSvc)}</div>
+      <div class="pl-stat-sub">from ERP expense claims</div>
+    </div>
+    <div class="pl-stat">
+      <div class="pl-stat-label">Revenue (Est.)</div>
+      <div class="pl-stat-value" style="color:#15803d">${fmt(totRev)}</div>
+      <div class="pl-stat-sub">modelled from all POs</div>
+    </div>
+    <div class="pl-stat">
+      <div class="pl-stat-label">Net Position</div>
+      <div class="pl-stat-value" style="color:${totGap>=0?'#15803d':'#dc2626'}">${totGap>=0?'+':'-'} ${fmt(Math.abs(totGap))}</div>
+      <div class="pl-stat-sub">${surplusCount} surplus · ${deficitCount} deficit</div>
+    </div>`;
+
+  // ── Profitability table ────────────────────────────────────────────────────
+  const dash = `<span style="color:#cbd5e1">—</span>`;
+  const gapCell = (v, cls='') => {
+    if (v === 0) return `<td class="${cls}">${dash}</td>`;
+    const c = v >= 0 ? 'gap-surplus' : 'gap-deficit';
+    return `<td class="${cls} ${c}">${v>=0?'+':'-'} ${fmt(Math.abs(v))}</td>`;
+  };
+
+  const rowHTML = (r) => {
+    const color = colorOf(r.loc);
+    return `<tr>
+      <td class="l"><span class="cust-badge">
+        <span style="width:9px;height:9px;border-radius:2px;background:${color};flex-shrink:0;display:inline-block"></span>
+        ${r.loc}
+      </span></td>
+      <td class="c">${fmtMonth(r.startDate)}</td>
+      <td class="c">${r.currentBots}</td>
+      <td>${fmt(r.totalBOM)}</td>
+      <td>${r.serviceCost ? fmt(r.serviceCost) : dash}</td>
+      <td style="border-right:1px solid #e2e8f0">${r.manDays > 0 ? r.manDays : dash}</td>
+      <td style="border-right:1px solid #e2e8f0">${r.manDayCost > 0 ? fmt(Math.round(r.manDayCost)) : dash}</td>
+      <td>${r.avgMonthlyRev ? fmt(Math.round(r.avgMonthlyRev)) : dash}</td>
+      <td>${r.avgSvcCost ? fmt(Math.round(r.avgSvcCost)) : dash}</td>
+      <td>${r.directCostPerMonth ? fmt(Math.round(r.directCostPerMonth)) : dash}</td>
+      <td>${r.manDayCostPerMonth > 0 ? fmt(Math.round(r.manDayCostPerMonth)) : dash}</td>
+      ${gapCell(Math.round(r.monthlyGap))}
+      ${gapCell(Math.round(r.gap))}
+    </tr>`;
+  };
+
+  const colspan = 12;
+  const sectionHTML = (rows, label) => rows.length ? `
+    <tr class="sect-header"><td colspan="${colspan}">${label}</td></tr>
+    ${rows.map(rowHTML).join('')}` : '';
+
+  document.getElementById('plTableWrap').innerHTML = `
+    <table class="profit-table">
+      <thead>
+        <tr>
+          <th class="l" rowspan="2">Customer</th>
+          <th class="c" rowspan="2">Start</th>
+          <th class="c" rowspan="2">Bots</th>
+          <th rowspan="2">Bot Cost</th>
+          <th rowspan="2">Service Cost<br><span style="font-weight:400;text-transform:none;font-size:9px;letter-spacing:0">(cumulative)</span></th>
+          <th colspan="2" style="text-align:center;border-bottom:1px solid #e2e8f0;border-right:1px solid #e2e8f0">Engineer Cost</th>
+          <th colspan="5" style="text-align:center;border-bottom:1px solid #e2e8f0">Monthly Rate</th>
+          <th rowspan="2">Current Gap<br><span style="font-weight:400;text-transform:none;font-size:9px;letter-spacing:0">(cumulative)</span></th>
+        </tr>
+        <tr>
+          <th style="border-right:1px solid #e2e8f0">Man Days<br><span style="font-weight:400;text-transform:none;font-size:9px;letter-spacing:0">from per diem</span></th>
+          <th style="border-right:1px solid #e2e8f0">Man Day Cost<br><span style="font-weight:400;text-transform:none;font-size:9px;letter-spacing:0">@ $${manDayRate}/day</span></th>
+          <th>Avg Revenue<br><span style="font-weight:400;text-transform:none;font-size:9px;letter-spacing:0">last 6 mo</span></th>
+          <th>Avg Svc Cost<br><span style="font-weight:400;text-transform:none;font-size:9px;letter-spacing:0">moving avg</span></th>
+          <th>Direct Cost<br><span style="font-weight:400;text-transform:none;font-size:9px;letter-spacing:0">ops share</span></th>
+          <th>Man Day Cost<br><span style="font-weight:400;text-transform:none;font-size:9px;letter-spacing:0">amortised/mo</span></th>
+          <th>Monthly Gap</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${sectionHTML(usRows,   '🇺🇸 US Customers')}
+        ${sectionHTML(intlRows, '🌍 International')}
+        <tr class="total-row">
+          <td class="l" colspan="3">Total</td>
+          <td>${fmt(totBOM)}</td>
+          <td>${fmt(totSvc)}</td>
+          <td style="border-right:1px solid #475569">${totManDays > 0 ? totManDays : '—'}</td>
+          <td style="border-right:1px solid #475569">${totManDayCost > 0 ? fmt(Math.round(totManDayCost)) : '—'}</td>
+          <td>${fmt(Math.round(totAvgRev))}</td>
+          <td>${fmt(Math.round(totAvgSvc))}</td>
+          <td>${totDirectCost ? fmt(Math.round(totDirectCost)) : '—'}</td>
+          <td>${totManDayPerMo > 0 ? fmt(Math.round(totManDayPerMo)) : '—'}</td>
+          <td style="color:${totMonthlyGap>=0?'#4ade80':'#fca5a5'}">${totMonthlyGap>=0?'+':'-'} ${fmt(Math.abs(Math.round(totMonthlyGap)))}</td>
+          <td style="color:${totGap>=0?'#4ade80':'#fca5a5'}">${totGap>=0?'+':'-'} ${fmt(Math.abs(Math.round(totGap)))}</td>
+        </tr>
+      </tbody>
+    </table>`;
+
+  document.getElementById('plNote').textContent =
+    `Revenue modelled from Salesforce POs · Per-customer deploy delay & payment terms from Milestones tab · Sorted by worst deficit first`;
+}
+
+// Toggle milestone label visibility without rebuilding the chart
+function toggleMilestones() {
+  if (!plChart) return;
+  const show = document.getElementById('chkMilestones').checked;
+  const anns = plChart.options.plugins.annotation.annotations;
+  Object.keys(anns).forEach(key => {
+    if (key.startsWith('poLine_')) anns[key].label.display = show;
+  });
+  plChart.update();
+  document.getElementById('plMilestonesTable').style.display = show ? '' : 'none';
+}
+
+// ── Utilization tab ───────────────────────────────────────────────────────────
+function renderUtilization() {
+  // Man-days per customer per month, derived from per diem expense entries
+  const allLocs  = [...US_CUSTOMERS, ...INTL_CUSTOMERS];
+  const months   = new Set();
+  const byLocMonth = {};
+
+  allLocs.forEach(loc => {
+    byLocMonth[loc] = {};
+    rawItems
+      .filter(i => i.location === loc && i.expense_type === 'Per Diem / Daily Allowance')
+      .forEach(i => {
+        const m = (i.date || '').slice(0, 7);
+        if (!m) return;
+        months.add(m);
+        byLocMonth[loc][m] = (byLocMonth[loc][m] || 0) + i.amount;
+      });
+    // Convert per diem $ → man-days
+    Object.keys(byLocMonth[loc]).forEach(m => {
+      byLocMonth[loc][m] = perDiemRate > 0
+        ? Math.round(byLocMonth[loc][m] / perDiemRate)
+        : 0;
+    });
+  });
+
+  const monthKeys = Array.from(months).sort();
+  const locsWithData = allLocs.filter(loc => Object.keys(byLocMonth[loc]).length > 0);
+
+  // Chart
+  const datasets = locsWithData.map((loc, i) => {
+    const color = colorOf(loc);
+    return {
+      label: loc,
+      data:  monthKeys.map(m => byLocMonth[loc][m] || 0),
+      backgroundColor: color,
+      borderWidth: 0,
+      stack: 'stack',
+    };
+  });
+
+  const utilChartEl = document.getElementById('utilChart');
+  if (window._utilChart) window._utilChart.destroy();
+  if (monthKeys.length && datasets.length) {
+    window._utilChart = new Chart(utilChartEl, {
+      type: 'bar',
+      data: { labels: monthKeys.map(fmtMonth), datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 12 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} days` } }
+        },
+        scales: {
+          x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 }, color: '#64748b' } },
+          y: { stacked: true, grid: { color: '#f1f5f9' },
+               ticks: { font: { size: 11 }, color: '#64748b' },
+               title: { display: true, text: 'Man Days', font: { size: 10 }, color: '#94a3b8' } }
+        }
+      }
+    });
+  } else {
+    utilChartEl.parentElement.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;font-size:13px">No per diem data found in ERP</div>';
+  }
+
+  // Table
+  const ths = monthKeys.map(m => `<th>${fmtMonth(m)}</th>`).join('');
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr>
+      <th style="text-align:left;padding:8px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b">Customer</th>
+      ${ths.replace(/<th>/g,'<th style="text-align:right;padding:8px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;white-space:nowrap">')}
+      <th style="text-align:right;padding:8px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b">Total</th>
+    </tr></thead><tbody>`;
+
+  locsWithData.forEach(loc => {
+    const total = Object.values(byLocMonth[loc]).reduce((s, v) => s + v, 0);
+    const color = colorOf(loc);
+    html += `<tr>
+      <td style="padding:9px 14px;border-bottom:1px solid #f1f5f9;font-weight:600;color:#1e293b">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:7px;vertical-align:middle"></span>${loc}
+      </td>
+      ${monthKeys.map(m => {
+        const v = byLocMonth[loc][m] || 0;
+        return v ? `<td style="text-align:right;padding:9px 14px;border-bottom:1px solid #f1f5f9">${v}</td>`
+                 : `<td style="text-align:right;padding:9px 14px;border-bottom:1px solid #f1f5f9;color:#cbd5e1">—</td>`;
+      }).join('')}
+      <td style="text-align:right;padding:9px 14px;border-bottom:1px solid #f1f5f9;font-weight:700">${total}</td>
+    </tr>`;
+  });
+
+  if (!locsWithData.length) {
+    html += `<tr><td colspan="${monthKeys.length + 2}" style="text-align:center;padding:40px;color:#94a3b8">No per diem entries found</td></tr>`;
+  }
+
+  const grandByMonth = monthKeys.map(m => locsWithData.reduce((s, loc) => s + (byLocMonth[loc][m] || 0), 0));
+  const grand = grandByMonth.reduce((s, v) => s + v, 0);
+  html += `<tr style="background:#1a2744;color:white;font-weight:700">
+    <td style="padding:9px 14px">Total</td>
+    ${grandByMonth.map(v => `<td style="text-align:right;padding:9px 14px">${v || '—'}</td>`).join('')}
+    <td style="text-align:right;padding:9px 14px">${grand}</td>
+  </tr></tbody></table>`;
+
+  document.getElementById('utilTable').innerHTML = html;
+}
+
+init();
+
+// ── SMR (Service Material Request) ───────────────────────────────────────────
+let smrData = null;  // null = not loaded yet
+
+async function loadSMRData() {
+  document.getElementById('smrLoadStatus').textContent = 'Loading…';
+  document.getElementById('smrTable').innerHTML =
+    '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px">Fetching SMRs from ERP…</div>';
+  try {
+    const r = await fetch('/api/smrs');
+    const d = await r.json();
+    if (d.status !== 'ok') throw new Error(d.detail || 'SMR fetch failed');
+    smrData = d.smrs || [];
+    document.getElementById('smrLoadStatus').textContent = `${smrData.length} SMRs loaded`;
+    populateSMRFilters();
+    renderSMRTable();
+  } catch(e) {
+    document.getElementById('smrLoadStatus').textContent = 'Error: ' + e.message;
+    document.getElementById('smrTable').innerHTML =
+      `<div style="padding:24px;color:#ef4444;font-size:13px">Failed to load SMRs: ${e.message}</div>`;
+  }
+}
+
+function populateSMRFilters() {
+  const locs = [...new Set((smrData || []).map(s => s.customer_location).filter(Boolean))].sort();
+  const sel  = document.getElementById('smrLocationFilter');
+  sel.innerHTML = '<option value="">All Locations</option>' +
+    locs.map(l => `<option value="${l}">${l}</option>`).join('');
+}
+
+function renderSMRTable() {
+  if (!smrData) return;
+
+  const statusF = document.getElementById('smrStatusFilter').value;
+  const locF    = document.getElementById('smrLocationFilter').value;
+
+  const filtered = smrData.filter(s =>
+    (!statusF || s.status === statusF || s.workflow_state === statusF) &&
+    (!locF    || s.customer_location === locF)
+  );
+
+  // ── KPI strip ────────────────────────────────────────────────────────────
+  const totalCost    = filtered.reduce((s, r) => s + (r.total || 0), 0);
+  const totalItems   = filtered.reduce((s, r) => s + (r.items || []).length, 0);
+  const uniqueItems  = new Set(filtered.flatMap(r => (r.items||[]).map(i => i.item_code))).size;
+  const warrantyCount = filtered.filter(s => s.service_type === 'Warranty').length;
+  const statusCounts  = filtered.reduce((m, s) => {
+    const k = s.workflow_state || s.status || 'Unknown';
+    m[k] = (m[k] || 0) + 1; return m;
+  }, {});
+
+  document.getElementById('smrKPIs').innerHTML = [
+    { label: 'Total SMRs',     value: filtered.length },
+    { label: 'Total Items',    value: totalItems },
+    { label: 'Unique Parts',   value: uniqueItems },
+    { label: 'Material Cost',  value: fmt(totalCost), accent: true },
+    { label: 'Warranty',       value: warrantyCount },
+    ...Object.entries(statusCounts).map(([k, v]) => ({ label: k, value: v })),
+  ].map(k => `
+    <div style="display:flex;flex-direction:column;gap:2px;min-width:90px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8">${k.label}</div>
+      <div style="font-size:18px;font-weight:700;color:${k.accent ? '#2563eb' : '#1e293b'}">${k.value}</div>
+    </div>`).join('<div style="width:1px;background:#e2e8f0;margin:4px 0"></div>');
+
+  // ── Flatten to one row per item ───────────────────────────────────────────
+  if (!filtered.length) {
+    document.getElementById('smrTable').innerHTML =
+      '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px">No SMRs match the current filter.</div>';
+    return;
+  }
+
+  // Build flat rows: one per item line, sorted by customer → month
+  const rows = [];
+  filtered.forEach(smr => {
+    const month = smr.date ? smr.date.slice(0, 7) : '';
+    (smr.items.length ? smr.items : [null]).forEach(item => {
+      rows.push({ smr, month, item });
+    });
+  });
+  rows.sort((a, b) => {
+    const locCmp = (a.smr.customer_location || '').localeCompare(b.smr.customer_location || '');
+    if (locCmp !== 0) return locCmp;
+    return (a.month || '').localeCompare(b.month || '');
+  });
+
+  const th = t => `<th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;border-bottom:2px solid #e2e8f0">${t}</th>`;
+  const thR = t => `<th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;border-bottom:2px solid #e2e8f0">${t}</th>`;
+
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:inherit">
+    <thead><tr style="background:#f8fafc">
+      ${th('Customer')}${th('Month')}${th('Item')}${thR('Cost')}${th('SMR')}
+    </tr></thead><tbody>`;
+
+  let prevLoc = null;
+  rows.forEach(({ smr, month, item }, i) => {
+    const loc     = smr.customer_location || '—';
+    const isNewLoc = loc !== prevLoc;
+    prevLoc = loc;
+    const bg = i % 2 === 0 ? 'white' : '#fafafa';
+    const border = 'border-bottom:0.5px solid #f1f5f9';
+
+    const hasCost = item && item.valuation_rate > 0;
+    const cost    = item ? (hasCost ? fmt(item.line_total) : '<span style="color:#ef4444;font-size:11px">⚠ missing</span>') : '—';
+    const itemStr = item
+      ? `<div style="color:#1e293b">${item.item_name || '—'}</div><div style="font-size:10px;color:#94a3b8;font-family:monospace;margin-top:1px">${item.item_code}${item.qty > 1 ? ' × ' + item.qty : ''}</div>`
+      : '<span style="color:#94a3b8;font-style:italic">No items</span>';
+
+    html += `<tr style="background:${bg}">
+      <td style="padding:8px 12px;${border};color:#374151;font-weight:${isNewLoc ? '600' : '400'}">${isNewLoc ? loc : ''}</td>
+      <td style="padding:8px 12px;${border};color:#64748b;white-space:nowrap">${month ? fmtMonth(month) : '—'}</td>
+      <td style="padding:8px 12px;${border}">${itemStr}</td>
+      <td style="padding:8px 12px;${border};text-align:right;font-family:monospace;white-space:nowrap">${cost}</td>
+      <td style="padding:8px 12px;${border};font-size:11px;white-space:nowrap">
+        <a href="${smr.url || '#'}" target="_blank" style="color:#2563eb;text-decoration:none;font-family:monospace" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${smr.name}</a>
+      </td>
+    </tr>`;
+  });
+
+  html += `<tr style="background:#f8fafc;border-top:2px solid #e2e8f0">
+    <td colspan="3" style="padding:10px 12px;font-weight:600;color:#374151;text-align:right">Total</td>
+    <td style="padding:10px 12px;font-weight:700;color:#2563eb;text-align:right;font-family:monospace">${fmt(totalCost)}</td>
+    <td></td>
+  </tr></tbody></table>`;
+
+  document.getElementById('smrTable').innerHTML = html;
+}
+</script>
+</body>
+</html>

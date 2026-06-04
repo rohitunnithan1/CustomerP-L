@@ -1,0 +1,34 @@
+# Secrets — never commit
+erpnext_config.json
+.env
+.env.*
+
+# Internal data files
+*.xlsx
+*.csv
+~$*
+
+# Standalone scripts (not part of the web app)
+build_expense_report.py
+build_revenue_report.py
+
+# Skill package
+*.skill
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Vercel
+.vercel/
+
+# OS
+.DS_Store
+Thumbs.db
