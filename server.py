@@ -90,7 +90,7 @@ def reload_categories_from_foundation():
     if not url:
         return False
     try:
-        r = requests.get(url, params={"sheet": "customers", "action": "read"}, timeout=60)
+        r = requests.get(url, params={"sheet": "customers", "action": "read"}, timeout=8)
         rows = r.json().get("rows", [])
         us, intl = [], []
         for row in rows:
@@ -114,11 +114,15 @@ def reload_categories_from_foundation():
         print(f"⚠️  Could not load foundation categories: {e}")
         return False
 
-# Try to load from foundation at startup (non-blocking — server still starts if it fails)
-try:
-    reload_categories_from_foundation()
-except Exception:
-    print("⚠️  Foundation categories unavailable at startup — using empty lists. Restart after sheet is accessible.")
+# Try to load from foundation at startup — runs in a daemon thread so Vercel
+# cold-start is never blocked by a slow Google Apps Script call.
+import threading as _threading
+def _startup_reload():
+    try:
+        reload_categories_from_foundation()
+    except Exception:
+        print("⚠️  Foundation categories unavailable at startup — using empty lists.")
+_threading.Thread(target=_startup_reload, daemon=True).start()
 
 def get_category(location):
     for cat, locs in CATEGORIES.items():
