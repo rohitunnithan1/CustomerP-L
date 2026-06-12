@@ -339,6 +339,7 @@ tr:not(.sect-tr):not(.total-tr):hover td { background: #f0f9ff; }
       <div class="tab" id="tabPL" onclick="switchTab('pl')">P&amp;L</div>
       <div class="tab" id="tabUtil" onclick="switchTab('util')">Utilization</div>
       <div class="tab" id="tabSMR" onclick="switchTab('smr')">Material Cost</div>
+      <div class="tab" id="tabCollections" onclick="switchTab('collections')">Collections</div>
     </div>
 
     <!-- Expenses view -->
@@ -484,6 +485,85 @@ tr:not(.sect-tr):not(.total-tr):hover td { background: #f0f9ff; }
       <div class="table-card">
         <div class="table-head-row">Man Days by Customer &amp; Month</div>
         <div style="overflow-x:auto"><div id="utilTable"></div></div>
+      </div>
+    </div>
+
+    <!-- Collections view -->
+    <div id="viewCollections" style="display:none">
+      <div class="table-card" style="margin-bottom:16px">
+        <div class="table-head-row" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Collections — Invoiced vs Received vs Outstanding</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <select id="colZoneFilter" onchange="renderCollections()"
+              style="font-size:12px;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;background:white;color:#374151">
+              <option value="">All Zones</option>
+              <option value="US">US Only</option>
+            </select>
+            <button onclick="loadCollections()" style="font-size:11px;padding:4px 12px;border:1px solid #e2e8f0;border-radius:6px;background:white;cursor:pointer;color:#374151">↻ Refresh</button>
+            <span id="colLoadStatus" style="font-size:11px;color:#94a3b8"></span>
+          </div>
+        </div>
+
+        <!-- Totals strip -->
+        <div id="colTotals" style="display:flex;gap:20px;padding:12px 0 6px;flex-wrap:wrap"></div>
+
+        <!-- Main table -->
+        <div style="overflow-x:auto">
+          <table id="colTable" style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+              <tr style="color:#64748b;border-bottom:1px solid #e2e8f0;text-align:left">
+                <th style="padding:8px 10px;font-weight:600">Customer</th>
+                <th style="padding:8px 10px;font-weight:600;text-align:right">Invoiced</th>
+                <th style="padding:8px 10px;font-weight:600;text-align:right">Cash Received</th>
+                <th style="padding:8px 10px;font-weight:600;text-align:right">ERP Reconciled</th>
+                <th style="padding:8px 10px;font-weight:600;text-align:right">Outstanding (AR)</th>
+                <th style="padding:8px 10px;font-weight:600;text-align:right">Recon Gap</th>
+                <th style="padding:8px 6px;font-weight:600">Last Payment</th>
+              </tr>
+            </thead>
+            <tbody id="colTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Expanded detail panel -->
+      <div id="colDetail" style="display:none">
+        <div class="table-card" style="margin-bottom:16px">
+          <div class="table-head-row" style="display:flex;align-items:center;justify-content:space-between">
+            <span id="colDetailTitle">Payment Detail</span>
+            <button onclick="document.getElementById('colDetail').style.display='none'"
+              style="font-size:11px;padding:3px 10px;border:1px solid #e2e8f0;border-radius:6px;background:white;cursor:pointer;color:#374151">✕ Close</button>
+          </div>
+
+          <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap">
+            <div class="table-card" style="flex:1;min-width:280px;padding:12px">
+              <div style="font-weight:600;font-size:12px;color:#64748b;margin-bottom:8px">PAYMENTS RECEIVED</div>
+              <table style="width:100%;font-size:12px;border-collapse:collapse">
+                <thead><tr style="color:#94a3b8;border-bottom:1px solid #f1f5f9">
+                  <th style="padding:4px 6px;text-align:left;font-weight:500">Date</th>
+                  <th style="padding:4px 6px;text-align:right;font-weight:500">Amount</th>
+                  <th style="padding:4px 6px;font-weight:500">Reference</th>
+                  <th style="padding:4px 6px;font-weight:500;color:#f59e0b">Unallocated</th>
+                </tr></thead>
+                <tbody id="colPaymentsBody"></tbody>
+              </table>
+            </div>
+            <div class="table-card" style="flex:1;min-width:280px;padding:12px">
+              <div style="font-weight:600;font-size:12px;color:#64748b;margin-bottom:8px">INVOICES</div>
+              <table style="width:100%;font-size:12px;border-collapse:collapse">
+                <thead><tr style="color:#94a3b8;border-bottom:1px solid #f1f5f9">
+                  <th style="padding:4px 6px;text-align:left;font-weight:500">Invoice</th>
+                  <th style="padding:4px 6px;text-align:left;font-weight:500">Date</th>
+                  <th style="padding:4px 6px;text-align:left;font-weight:500">Due</th>
+                  <th style="padding:4px 6px;text-align:right;font-weight:500">Amount</th>
+                  <th style="padding:4px 6px;text-align:right;font-weight:500">Outstanding</th>
+                  <th style="padding:4px 6px;font-weight:500">Status</th>
+                </tr></thead>
+                <tbody id="colInvoicesBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -675,11 +755,14 @@ function switchTab(tab) {
   document.getElementById('tabPL').classList.toggle('active', tab === 'pl');
   document.getElementById('tabUtil').classList.toggle('active', tab === 'util');
   document.getElementById('tabSMR').classList.toggle('active', tab === 'smr');
-  document.getElementById('viewExpenses').style.display = tab === 'expenses' ? '' : 'none';
-  document.getElementById('viewPL').style.display       = tab === 'pl'       ? '' : 'none';
-  document.getElementById('viewUtil').style.display     = tab === 'util'     ? '' : 'none';
-  document.getElementById('viewSMR').style.display      = tab === 'smr'      ? '' : 'none';
+  document.getElementById('tabCollections').classList.toggle('active', tab === 'collections');
+  document.getElementById('viewExpenses').style.display    = tab === 'expenses'    ? '' : 'none';
+  document.getElementById('viewPL').style.display          = tab === 'pl'          ? '' : 'none';
+  document.getElementById('viewUtil').style.display        = tab === 'util'        ? '' : 'none';
+  document.getElementById('viewSMR').style.display         = tab === 'smr'         ? '' : 'none';
+  document.getElementById('viewCollections').style.display = tab === 'collections' ? '' : 'none';
   if (tab === 'smr' && smrData === null) loadSMRData();
+  if (tab === 'collections' && collectionsData === null) loadCollections();
   if (tab === 'pl') {
     if (selected) loadPL(selected);
     else loadAllPL();
@@ -2073,6 +2156,129 @@ function renderSMRTable() {
   </tr></tbody></table>`;
 
   document.getElementById('smrTable').innerHTML = html;
+}
+
+// ── Collections ───────────────────────────────────────────────────────────────
+let collectionsData = null;
+
+async function loadCollections() {
+  document.getElementById('colLoadStatus').textContent = 'Loading…';
+  try {
+    const r = await fetch('/api/payments/received');
+    const d = await r.json();
+    if (d.status !== 'ok') throw new Error(d.detail || 'error');
+    collectionsData = d;
+    renderCollections();
+    document.getElementById('colLoadStatus').textContent = `${d.payment_count} payments`;
+  } catch(e) {
+    document.getElementById('colLoadStatus').textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderCollections() {
+  if (!collectionsData) return;
+  const { totals, locations } = collectionsData;
+  const zoneFilter = document.getElementById('colZoneFilter').value;
+
+  // Filter to US-only known customers if requested
+  let rows = locations.filter(r => !r.location.startsWith('_unmapped:'));
+  if (zoneFilter === 'US') {
+    const usLocs = new Set((CUSTOMER_CONFIG ? Object.entries(CUSTOMER_CONFIG)
+      .filter(([,v]) => v.zone === 'US').map(([k]) => v.erpKey || k) : []));
+    rows = rows.filter(r => usLocs.has(r.location) || r.cash_received > 0);
+  }
+  // Always sort: has cash first, then by invoiced desc
+  rows.sort((a,b) => (b.cash_received - a.cash_received) || (b.invoiced - a.invoiced));
+
+  // Totals strip
+  const tot = document.getElementById('colTotals');
+  const totItems = [
+    { label: 'Total Invoiced',    val: totals.invoiced,      color: '#374151' },
+    { label: 'Cash Received',     val: totals.cash_received, color: '#059669' },
+    { label: 'ERP Reconciled',    val: totals.reconciled,    color: '#2563eb' },
+    { label: 'AR Outstanding',    val: totals.outstanding,   color: '#dc2626' },
+  ];
+  tot.innerHTML = totItems.map(t => `
+    <div style="background:#f8fafc;border-radius:8px;padding:10px 18px;min-width:140px">
+      <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">${t.label}</div>
+      <div style="font-size:18px;font-weight:700;color:${t.color};font-family:monospace">${fmt(t.val)}</div>
+    </div>`).join('');
+
+  // Table rows
+  const statusColor = {
+    'Paid': '#059669', 'Overdue': '#dc2626', 'Unpaid': '#f59e0b',
+    'Draft': '#94a3b8', 'Return': '#7c3aed',
+  };
+
+  let html = '';
+  rows.forEach(r => {
+    const lastPay = r.payments.length ? r.payments[0] : null;
+    const hasGap  = Math.abs(r.reconciliation_gap) > 1;
+    const gapColor = r.reconciliation_gap > 1 ? '#f59e0b' : (r.reconciliation_gap < -1 ? '#dc2626' : '#059669');
+    html += `<tr style="border-bottom:1px solid #f1f5f9;cursor:pointer" onclick="showColDetail('${r.location.replace(/'/g,"\\'")}')">
+      <td style="padding:9px 10px;font-weight:500;color:#1e293b">${r.location}</td>
+      <td style="padding:9px 10px;text-align:right;font-family:monospace;color:#374151">${r.invoiced > 0 ? fmt(r.invoiced) : '—'}</td>
+      <td style="padding:9px 10px;text-align:right;font-family:monospace;font-weight:600;color:#059669">${r.cash_received > 0 ? fmt(r.cash_received) : '—'}</td>
+      <td style="padding:9px 10px;text-align:right;font-family:monospace;color:#2563eb">${r.reconciled > 0 ? fmt(r.reconciled) : '—'}</td>
+      <td style="padding:9px 10px;text-align:right;font-family:monospace;color:${r.outstanding > 0 ? '#dc2626' : '#059669'}">${fmt(r.outstanding)}</td>
+      <td style="padding:9px 10px;text-align:right;font-family:monospace;color:${gapColor}">${hasGap ? fmt(r.reconciliation_gap) : '✓'}</td>
+      <td style="padding:9px 6px;font-size:11px;color:#64748b">${lastPay ? lastPay.date : '—'}</td>
+    </tr>`;
+  });
+  document.getElementById('colTableBody').innerHTML = html || '<tr><td colspan="7" style="padding:20px;text-align:center;color:#94a3b8">No data</td></tr>';
+}
+
+function showColDetail(loc) {
+  const d = collectionsData?.locations?.find(r => r.location === loc);
+  if (!d) return;
+
+  document.getElementById('colDetailTitle').textContent = `Detail — ${loc}`;
+  document.getElementById('colDetail').style.display = '';
+  document.getElementById('colDetail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Payments side
+  let ph = '';
+  if (d.payments.length === 0) {
+    ph = '<tr><td colspan="4" style="padding:10px;color:#94a3b8;text-align:center">No payments recorded</td></tr>';
+  } else {
+    d.payments.forEach(p => {
+      const unallocFlag = p.unallocated > 0.5 ?
+        `<span style="color:#f59e0b;font-weight:600">${fmt(p.unallocated)} unallocated</span>` : '✓ linked';
+      ph += `<tr style="border-bottom:1px solid #f8fafc">
+        <td style="padding:5px 6px;color:#374151">${p.date}</td>
+        <td style="padding:5px 6px;text-align:right;font-family:monospace;font-weight:600;color:#059669">${fmt(p.amount)}</td>
+        <td style="padding:5px 6px;font-size:11px;color:#64748b;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.reference_no}">${p.reference_no || '—'}</td>
+        <td style="padding:5px 6px;font-size:11px">${unallocFlag}</td>
+      </tr>`;
+    });
+    // Total row
+    const total = d.payments.reduce((s,p) => s + p.amount, 0);
+    ph += `<tr style="border-top:2px solid #e2e8f0;background:#f8fafc">
+      <td style="padding:6px;font-weight:600">Total</td>
+      <td style="padding:6px;text-align:right;font-family:monospace;font-weight:700;color:#059669">${fmt(total)}</td>
+      <td colspan="2"></td>
+    </tr>`;
+  }
+  document.getElementById('colPaymentsBody').innerHTML = ph;
+
+  // Invoices side
+  const statusColor = {
+    'Paid':'#059669','Overdue':'#dc2626','Unpaid':'#f59e0b','Draft':'#94a3b8','Return':'#7c3aed'
+  };
+  let ih = '';
+  d.invoices.forEach(inv => {
+    const sc = statusColor[inv.status] || '#64748b';
+    ih += `<tr style="border-bottom:1px solid #f8fafc">
+      <td style="padding:5px 6px;font-family:monospace;font-size:11px;color:#2563eb">${inv.name}</td>
+      <td style="padding:5px 6px;color:#374151">${inv.date}</td>
+      <td style="padding:5px 6px;color:${inv.status==='Overdue'?'#dc2626':'#64748b'}">${inv.due_date}</td>
+      <td style="padding:5px 6px;text-align:right;font-family:monospace">${fmt(inv.amount)}</td>
+      <td style="padding:5px 6px;text-align:right;font-family:monospace;color:${inv.outstanding>0?'#dc2626':'#059669'}">${fmt(inv.outstanding)}</td>
+      <td style="padding:5px 6px"><span style="background:${sc}20;color:${sc};border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">${inv.status}</span></td>
+    </tr>`;
+  });
+  if (!ih) ih = '<tr><td colspan="6" style="padding:10px;color:#94a3b8;text-align:center">No invoices</td></tr>';
+  document.getElementById('colInvoicesBody').innerHTML = ih;
 }
 </script>
 </body>

@@ -1435,31 +1435,36 @@ def get_smrs():
 
 @app.route("/api/erp/probe")
 def erp_probe():
-    """Generic ERP probe — pass ?doctype=X&fields=f1,f2&limit=N&filters=JSON"""
-    cfg = load_config()
+    """Generic ERP probe — pass ?doctype=X&fields=f1,f2&limit=N&filters=JSON&instance=us|india"""
+    instance = request.args.get("instance", "us")
+    cfg = load_config(instance=instance)
     doctype = request.args.get("doctype", "")
     fields  = request.args.get("fields", "name")
     limit   = int(request.args.get("limit", 20))
     filters = request.args.get("filters", "[]")
+    order_by = request.args.get("order_by", "")
     if not doctype:
         return jsonify({"status": "error", "detail": "doctype required"}), 400
     try:
         field_list = [f.strip() for f in fields.split(",")]
+        params = {"fields": json.dumps(field_list), "limit_page_length": limit, "filters": filters}
+        if order_by:
+            params["order_by"] = order_by
         r = requests.get(
             f"{cfg['site_url']}/api/resource/{doctype}",
             headers=erp_headers(cfg),
-            params={"fields": json.dumps(field_list), "limit_page_length": limit,
-                    "filters": filters},
+            params=params,
             timeout=20,
         )
-        return jsonify({"status": "ok", "doctype": doctype, "data": r.json()})
+        return jsonify({"status": "ok", "doctype": doctype, "instance": instance, "data": r.json()})
     except Exception as e:
         return jsonify({"status": "error", "detail": str(e)}), 500
 
 @app.route("/api/erp/probe/detail")
 def erp_probe_detail():
-    """Fetch a single ERP doc — pass ?doctype=X&name=Y"""
-    cfg  = load_config()
+    """Fetch a single ERP doc — pass ?doctype=X&name=Y&instance=us|india"""
+    instance = request.args.get("instance", "us")
+    cfg  = load_config(instance=instance)
     doctype = request.args.get("doctype", "")
     name    = request.args.get("name", "")
     if not doctype or not name:
@@ -1469,7 +1474,7 @@ def erp_probe_detail():
             f"{cfg['site_url']}/api/resource/{doctype}/{name}",
             headers=erp_headers(cfg), timeout=15,
         )
-        return jsonify({"status": "ok", "data": r.json().get("data", {})})
+        return jsonify({"status": "ok", "instance": instance, "data": r.json().get("data", {})})
     except Exception as e:
         return jsonify({"status": "error", "detail": str(e)}), 500
 
